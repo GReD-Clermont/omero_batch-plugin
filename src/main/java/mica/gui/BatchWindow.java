@@ -15,6 +15,7 @@ import mica.process.BatchListener;
 import mica.process.BatchRunner;
 
 import javax.swing.*;
+import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -32,10 +33,15 @@ import java.util.stream.Collectors;
 import static javax.swing.JOptionPane.showMessageDialog;
 
 public class BatchWindow extends JFrame implements BatchListener {
+	// connection management
+	private final JLabel connectionStatus = new JLabel("Disconnected");
+	private final JButton connect = new JButton("Connect");
+	private final JButton disconnect = new JButton("Disconnect");
+
+	// group and user selection
 	private final JComboBox<String> groupList = new JComboBox<>();
 	private final JComboBox<String> userList = new JComboBox<>();
 	private final JLabel labelGroupName = new JLabel();
-	private final JButton start = new JButton("Start");
 
 	// choices of input images
 	private final JPanel input2a = new JPanel();
@@ -79,14 +85,17 @@ public class BatchWindow extends JFrame implements BatchListener {
 	private final JPanel output3b = new JPanel();
 	private final JTextField directory = new JTextField(20);
 
+	// start button
+	private final JButton start = new JButton("Start");
+
 	//variables to keep
 	private final transient Client client;
-	private final transient List<GroupWrapper> groups;
 	private String macroChosen;
 	private String directoryOut;
 	private String directoryIn;
 	private Long outputDatasetId;
 	private Long outputProjectId;
+	private transient List<GroupWrapper> groups;
 	private transient List<ProjectWrapper> groupProjects;
 	private transient List<ProjectWrapper> userProjects;
 	private transient List<DatasetWrapper> datasets;
@@ -96,15 +105,15 @@ public class BatchWindow extends JFrame implements BatchListener {
 	private transient ExperimenterWrapper exp;
 
 
-	public BatchWindow(Client client) {
+	public BatchWindow() {
 		super("Choice of input files and output location");
-		this.client = client;
+		this.client = new Client();
 
 		this.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
 				super.windowClosing(e);
-				client.disconnect();
+				disconnect();
 			}
 		});
 
@@ -113,32 +122,41 @@ public class BatchWindow extends JFrame implements BatchListener {
 		this.setSize(600, 700);
 		this.setLocationRelativeTo(null);
 
-		try {
-			exp = client.getUser(client.getUser().getUserName());
-		} catch (ExecutionException | ServiceException | AccessException e) {
-			IJ.error(e.getCause().getMessage());
-		}
-		groups = exp.getGroups();
-		groups.removeIf(g -> g.getId() <= 2);
-
-		for (GroupWrapper group : groups) {
-			groupList.addItem(group.getName());
-		}
-
 		Font nameFont = new Font("Arial", Font.ITALIC, 10);
 		Container cp = this.getContentPane();
 		cp.setLayout(new BoxLayout(this.getContentPane(), BoxLayout.PAGE_AXIS));
 
+		JPanel connection = new JPanel();
+		JLabel labelConnection = new JLabel("Connection status: ");
+		labelConnection.setLabelFor(connectionStatus);
+		connection.add(labelConnection);
+		connection.add(connectionStatus);
+		connectionStatus.setForeground(Color.RED);
+		connection.add(Box.createRigidArea(new Dimension(100, 0)));
+		connection.add(connect);
+		connection.add(disconnect);
+		disconnect.setVisible(false);
+		connect.addActionListener(e -> connect());
+		disconnect.addActionListener(e -> disconnect());
+		BoxLayout connectionLayout = new BoxLayout(connection, BoxLayout.LINE_AXIS);
+		connection.setLayout(connectionLayout);
+
+		JPanel panelConnection = new JPanel();
+		panelConnection.add(connection);
+		panelConnection.setBorder(BorderFactory.createTitledBorder("Connection"));
+		cp.add(panelConnection);
+
 		JPanel group = new JPanel();
 		JLabel labelGroup = new JLabel("Group Name: ");
+		labelGroup.setLabelFor(groupList);
 		group.add(labelGroup);
 		group.add(groupList);
 		groupList.addItemListener(this::updateGroup);
-
 		group.add(labelGroupName);
 		labelGroupName.setFont(nameFont);
 		JPanel groupUsers = new JPanel();
 		JLabel labelUser = new JLabel("User Name: ");
+		labelUser.setLabelFor(userList);
 		groupUsers.add(labelUser);
 		groupUsers.add(userList);
 		userList.addItemListener(this::updateUser);
@@ -193,7 +211,7 @@ public class BatchWindow extends JFrame implements BatchListener {
 		panelInput.add(input1);
 		panelInput.add(input2a);
 		panelInput.add(input2b);
-		omero.setSelected(true);
+		local.setSelected(true);
 		panelInput.setLayout(new BoxLayout(panelInput, BoxLayout.PAGE_AXIS));
 		panelInput.setBorder(BorderFactory.createTitledBorder("Input"));
 		cp.add(panelInput);
@@ -233,6 +251,7 @@ public class BatchWindow extends JFrame implements BatchListener {
 		cp.add(panelMacro);
 
 		JLabel labelExtension = new JLabel("Suffix of output files :");
+		labelExtension.setLabelFor(suffix);
 		output1.add(labelExtension);
 		output1.add(suffix);
 		suffix.setText("_macro");
@@ -284,14 +303,6 @@ public class BatchWindow extends JFrame implements BatchListener {
 		panelBtn.add(start);
 		start.addActionListener(this::start);
 		cp.add(panelBtn);
-
-		long groupId = client.getCurrentGroupId();
-		int index;
-		for (index = 0; index < groups.size(); index++) {
-			if (groups.get(index).getId() == groupId) break;
-		}
-		groupList.setSelectedIndex(-1);
-		groupList.setSelectedIndex(index);
 
 		this.setVisible(true);
 	}
@@ -488,8 +499,16 @@ public class BatchWindow extends JFrame implements BatchListener {
 
 	private void updateInput(ItemEvent e) {
 		if (omero.isSelected()) {
-			input2a.setVisible(true);
-			input2b.setVisible(false);
+			boolean connected = disconnect.isVisible();
+			if (!connected) {
+				connected = connect();
+			}
+			if (connected) {
+				input2a.setVisible(true);
+				input2b.setVisible(false);
+			} else {
+				local.setSelected(true);
+			}
 		} else { //local.isSelected()
 			input2b.setVisible(true);
 			checkDelROIs.setSelected(false);
@@ -538,6 +557,55 @@ public class BatchWindow extends JFrame implements BatchListener {
 	@Override
 	public void onThreadFinished() {
 		start.setEnabled(true);
+	}
+
+
+	private boolean connect() {
+		boolean connected = false;
+		ConnectDialog connectDialog = new ConnectDialog(client);
+		if (!connectDialog.wasCancelled()) {
+			connectionStatus.setText("Connected");
+			connectionStatus.setForeground(new Color(0, 153, 0));
+			connect.setVisible(false);
+			disconnect.setVisible(true);
+			omero.setSelected(true);
+
+			long groupId = client.getCurrentGroupId();
+
+			try {
+				exp = client.getUser(client.getUser().getUserName());
+			} catch (ExecutionException | ServiceException | AccessException e) {
+				IJ.error(e.getCause().getMessage());
+			}
+			groups = exp.getGroups();
+			groups.removeIf(g -> g.getId() <= 2);
+
+			for (GroupWrapper group : groups) {
+				groupList.addItem(group.getName());
+			}
+
+			int index;
+			for (index = 0; index < groups.size(); index++) {
+				if (groups.get(index).getId() == groupId) break;
+			}
+			groupList.setSelectedIndex(-1);
+			groupList.setSelectedIndex(index);
+			connected = true;
+		}
+		return connected;
+	}
+
+
+	private void disconnect() {
+		client.disconnect();
+		local.setSelected(true);
+		connectionStatus.setText("Disconnected");
+		connectionStatus.setForeground(Color.RED);
+		connect.setVisible(true);
+		disconnect.setVisible(false);
+		groupList.removeAllItems();
+		userList.removeAllItems();
+		labelGroupName.setText("");
 	}
 
 
