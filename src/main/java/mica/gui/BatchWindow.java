@@ -10,13 +10,13 @@ import fr.igred.omero.repository.DatasetWrapper;
 import fr.igred.omero.repository.ImageWrapper;
 import fr.igred.omero.repository.ProjectWrapper;
 import ij.IJ;
+import ij.plugin.frame.PlugInFrame;
 import loci.plugins.config.SpringUtilities;
 import mica.process.BatchListener;
 import mica.process.BatchRunner;
 
 import javax.swing.*;
 import java.awt.Color;
-import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 
 import static javax.swing.JOptionPane.showMessageDialog;
 
-public class BatchWindow extends JFrame implements BatchListener {
+public class BatchWindow extends PlugInFrame implements BatchListener {
 	// connection management
 	private final JLabel connectionStatus = new JLabel("Disconnected");
 	private final JButton connect = new JButton("Connect");
@@ -109,7 +109,7 @@ public class BatchWindow extends JFrame implements BatchListener {
 
 
 	public BatchWindow() {
-		super("Choice of input files and output location");
+		super("batch-omero-plugin");
 		this.client = new Client();
 
 		this.addWindowListener(new WindowAdapter() {
@@ -127,8 +127,7 @@ public class BatchWindow extends JFrame implements BatchListener {
 		this.setLocationRelativeTo(null);
 
 		Font nameFont = new Font("Arial", Font.ITALIC, 10);
-		Container cp = this.getContentPane();
-		cp.setLayout(new BoxLayout(this.getContentPane(), BoxLayout.PAGE_AXIS));
+		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 
 		JPanel connection = new JPanel();
 		JLabel labelConnection = new JLabel("Connection status: ");
@@ -143,7 +142,7 @@ public class BatchWindow extends JFrame implements BatchListener {
 		connect.addActionListener(e -> connect());
 		disconnect.addActionListener(e -> disconnect());
 		connection.setBorder(BorderFactory.createTitledBorder("Connection"));
-		cp.add(connection);
+		this.add(connection);
 
 		JPanel source = new JPanel();
 		JLabel labelEnterType = new JLabel("Where to get images to analyse :");
@@ -156,7 +155,7 @@ public class BatchWindow extends JFrame implements BatchListener {
 		omero.addItemListener(this::updateInput);
 		local.addItemListener(this::updateInput);
 		source.setBorder(BorderFactory.createTitledBorder("Source"));
-		cp.add(source);
+		this.add(source);
 
 		JLabel labelGroup = new JLabel("Group Name: ");
 		labelGroup.setLabelFor(groupList);
@@ -207,7 +206,7 @@ public class BatchWindow extends JFrame implements BatchListener {
 		local.setSelected(true);
 		panelInput.setLayout(new BoxLayout(panelInput, BoxLayout.PAGE_AXIS));
 		panelInput.setBorder(BorderFactory.createTitledBorder("Input"));
-		cp.add(panelInput);
+		this.add(panelInput);
 
 		JPanel macro1 = new JPanel();
 		macro1.add(macro);
@@ -237,7 +236,7 @@ public class BatchWindow extends JFrame implements BatchListener {
 		panelMacro.add(macro3);
 		panelMacro.setLayout(new BoxLayout(panelMacro, BoxLayout.PAGE_AXIS));
 		panelMacro.setBorder(BorderFactory.createTitledBorder("Macro"));
-		cp.add(panelMacro);
+		this.add(panelMacro);
 
 		JLabel labelExtension = new JLabel("Suffix of output files :");
 		labelExtension.setLabelFor(suffix);
@@ -285,14 +284,18 @@ public class BatchWindow extends JFrame implements BatchListener {
 		panelOutput.add(output3b);
 		panelOutput.setLayout(new BoxLayout(panelOutput, BoxLayout.PAGE_AXIS));
 		panelOutput.setBorder(BorderFactory.createTitledBorder("Output"));
-		cp.add(panelOutput);
+		this.add(panelOutput);
 
 		// validation button
 		JPanel panelBtn = new JPanel();
 		panelBtn.add(start);
 		start.addActionListener(this::start);
-		cp.add(panelBtn);
+		this.add(panelBtn);
+	}
 
+
+	@Override
+	public void run(String arg) {
 		this.setVisible(true);
 	}
 
@@ -707,7 +710,7 @@ public class BatchWindow extends JFrame implements BatchListener {
 		boolean outputResults = checkResults.isSelected();
 		boolean connected = disconnect.isVisible();
 
-		if(outputOnline && !connected) {
+		if (outputOnline && !connected) {
 			connected = connect();
 			outputOnline = connected;
 			onlineOutput.setSelected(outputOnline);
