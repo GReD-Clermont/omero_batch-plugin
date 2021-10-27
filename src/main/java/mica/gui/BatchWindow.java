@@ -86,7 +86,7 @@ public class BatchWindow extends PlugInFrame implements BatchListener {
 
 	// local
 	private final JPanel output3b = new JPanel();
-	private final JTextField directory = new JTextField(20);
+	private final JTextField outputFolder = new JTextField(20);
 
 	// start button
 	private final JButton start = new JButton("Start");
@@ -120,21 +120,22 @@ public class BatchWindow extends PlugInFrame implements BatchListener {
 			}
 		});
 
+		Font nameFont = new Font("Arial", Font.ITALIC, 10);
+
 		final String projectName = "Project Name: ";
 		final String datasetName = "Dataset Name: ";
+		final String browse = "Browse";
 		this.setSize(630, 620);
-		this.setMinimumSize(new Dimension(630, 620));
+		this.setMinimumSize(this.getSize());
 		this.setLocationRelativeTo(null);
-
-		Font nameFont = new Font("Arial", Font.ITALIC, 10);
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 
 		JPanel connection = new JPanel();
 		JLabel labelConnection = new JLabel("Connection status: ");
 		labelConnection.setLabelFor(connectionStatus);
+		connectionStatus.setForeground(Color.RED);
 		connection.add(labelConnection);
 		connection.add(connectionStatus);
-		connectionStatus.setForeground(Color.RED);
 		connection.add(Box.createRigidArea(new Dimension(50, 0)));
 		connection.add(connect);
 		connection.add(disconnect);
@@ -146,55 +147,59 @@ public class BatchWindow extends PlugInFrame implements BatchListener {
 
 		JPanel source = new JPanel();
 		JLabel labelEnterType = new JLabel("Where to get images to analyse :");
-		source.add(labelEnterType);
-		source.add(omero);
-		source.add(local);
 		ButtonGroup inputData = new ButtonGroup();
 		inputData.add(omero);
 		inputData.add(local);
+		source.add(labelEnterType);
+		source.add(omero);
+		source.add(local);
 		omero.addItemListener(this::updateInput);
 		local.addItemListener(this::updateInput);
 		source.setBorder(BorderFactory.createTitledBorder("Source"));
 		this.add(source);
 
 		JLabel labelGroup = new JLabel("Group Name: ");
+		JLabel labelUser = new JLabel("User Name: ");
 		labelGroup.setLabelFor(groupList);
+		labelUser.setLabelFor(userList);
+		labelGroupName.setFont(nameFont);
 		input1a.add(labelGroup);
 		input1a.add(groupList);
-		groupList.addItemListener(this::updateGroup);
 		input1a.add(labelGroupName);
-		labelGroupName.setFont(nameFont);
-		JLabel labelUser = new JLabel("User Name: ");
-		labelUser.setLabelFor(userList);
 		input1a.add(labelUser);
 		input1a.add(userList);
+		groupList.addItemListener(this::updateGroup);
 		userList.addItemListener(this::updateUser);
 
 		JLabel labelProjectIn = new JLabel(projectName);
+		JLabel labelDatasetIn = new JLabel(datasetName);
+		JButton preview = new JButton("Preview");
 		labelProjectIn.setLabelFor(projectListIn);
+		labelDatasetIn.setLabelFor(datasetListIn);
+		labelInputProject.setLabelFor(projectListIn);
+		labelInputDataset.setLabelFor(datasetListIn);
+		labelInputProject.setFont(nameFont);
+		labelInputDataset.setFont(nameFont);
 		input1b.add(labelProjectIn);
 		input1b.add(projectListIn);
-		projectListIn.addItemListener(this::updateInputProject);
 		input1b.add(labelInputProject);
-		labelInputProject.setFont(nameFont);
-		labelInputProject.setLabelFor(projectListIn);
-		JLabel labelDatasetIn = new JLabel(datasetName);
-		labelDatasetIn.setLabelFor(datasetListIn);
 		input1b.add(labelDatasetIn);
 		input1b.add(datasetListIn);
-		datasetListIn.addItemListener(this::updateInputDataset);
 		input1b.add(labelInputDataset);
-		labelInputDataset.setFont(nameFont);
-		labelInputDataset.setLabelFor(datasetListIn);
-		JButton preview = new JButton("Preview");
-		preview.addActionListener(e -> previewDataset());
 		input1b.add(preview);
+		projectListIn.addItemListener(this::updateInputProject);
+		datasetListIn.addItemListener(this::updateInputDataset);
+		preview.addActionListener(e -> previewDataset());
+
 		input1c.add(checkLoadROIs);
 		input1c.add(checkDelROIs);
 
-		input2.add(inputFolder);
+		JLabel inputFolderLabel = new JLabel("Images folder: ");
+		JButton inputFolderBtn = new JButton(browse);
+		inputFolderLabel.setLabelFor(inputFolder);
 		inputFolder.setMaximumSize(new Dimension(300, 30));
-		JButton inputFolderBtn = new JButton("Images directory");
+		input2.add(inputFolderLabel);
+		input2.add(inputFolder);
 		input2.add(inputFolderBtn);
 		inputFolderBtn.addActionListener(e -> chooseDirectory(inputFolder));
 
@@ -209,25 +214,30 @@ public class BatchWindow extends PlugInFrame implements BatchListener {
 		this.add(panelInput);
 
 		JPanel macro1 = new JPanel();
-		macro1.add(macro);
+		JLabel macroLabel = new JLabel("Macro file: ");
+		JButton macroBtn = new JButton(browse);
+		macroLabel.setLabelFor(macro);
 		macro.setMaximumSize(new Dimension(300, 30));
-		JButton macroBtn = new JButton("Macro file");
+		macro1.add(macroLabel);
+		macro1.add(macro);
 		macro1.add(macroBtn);
 		macroBtn.addActionListener(e -> chooseMacro());
+
 		JPanel macro2 = new JPanel();
 		macro2.setLayout(new BoxLayout(macro2, BoxLayout.LINE_AXIS));
 		JLabel macroReturnLabel = new JLabel("The macro returns: ");
 		macro2.add(macroReturnLabel);
+
 		JPanel macro3 = new JPanel();
 		macro3.setLayout(new BoxLayout(macro3, BoxLayout.LINE_AXIS));
-		checkImage.addActionListener(this::updateOutput);
 		macro3.add(checkImage);
-		checkResults.addActionListener(this::updateOutput);
 		macro3.add(checkResults);
-		checkROIs.addActionListener(this::updateOutput);
 		macro3.add(checkROIs);
-		checkLog.addActionListener(this::updateOutput);
 		macro3.add(checkLog);
+		checkImage.addActionListener(this::updateOutput);
+		checkResults.addActionListener(this::updateOutput);
+		checkROIs.addActionListener(this::updateOutput);
+		checkLog.addActionListener(this::updateOutput);
 
 		//choice of the macro
 		JPanel panelMacro = new JPanel();
@@ -240,40 +250,46 @@ public class BatchWindow extends PlugInFrame implements BatchListener {
 
 		JLabel labelExtension = new JLabel("Suffix of output files :");
 		labelExtension.setLabelFor(suffix);
+		suffix.setText("_macro");
 		output1.add(labelExtension);
 		output1.add(suffix);
-		suffix.setText("_macro");
 		output1.setVisible(false);
 
 		JPanel output2 = new JPanel();
 		JLabel labelRecordOption = new JLabel("Where to save results :");
 		output2.add(labelRecordOption);
 		output2.add(onlineOutput);
-		onlineOutput.addActionListener(this::updateOutput);
 		output2.add(localOutput);
+		onlineOutput.addActionListener(this::updateOutput);
 		localOutput.addActionListener(this::updateOutput);
 
-		output3a.add(labelOutputProject);
+
+		JLabel labelProjectOut = new JLabel(projectName);
+		JLabel labelDatasetOut = new JLabel(datasetName);
+		labelProjectOut.setLabelFor(projectListOut);
+		labelDatasetOut.setLabelFor(datasetListOut);
+		labelOutputProject.setFont(nameFont);
+		labelOutputDataset.setFont(nameFont);
+		output3a.add(labelProjectOut);
 		output3a.add(projectListOut);
-		projectListOut.addItemListener(this::updateOutputProject);
-		JLabel labelExistProjectName = new JLabel();
-		output3a.add(labelExistProjectName);
-		labelExistProjectName.setFont(nameFont);
-		output3a.add(labelOutputDataset);
+		output3a.add(labelOutputProject);
+		output3a.add(labelDatasetOut);
 		output3a.add(datasetListOut);
-		datasetListOut.addItemListener(this::updateOutputDataset);
-		JLabel labelExistDatasetName = new JLabel();
-		output3a.add(labelExistDatasetName);
-		labelExistDatasetName.setFont(nameFont);
-		newDatasetBtn.addActionListener(this::createNewDataset);
+		output3a.add(labelOutputDataset);
 		output3a.add(newDatasetBtn);
+		projectListOut.addItemListener(this::updateOutputProject);
+		datasetListOut.addItemListener(this::updateOutputDataset);
+		newDatasetBtn.addActionListener(this::createNewDataset);
 		output3a.setVisible(false);
 
-		output3b.add(directory);
-		directory.setMaximumSize(new Dimension(300, 30));
-		JButton directoryBtn = new JButton("Output directory");
+		JLabel outputFolderLabel = new JLabel("Output folder: ");
+		JButton directoryBtn = new JButton(browse);
+		outputFolderLabel.setLabelFor(outputFolder);
+		outputFolder.setMaximumSize(new Dimension(300, 30));
+		output3b.add(outputFolderLabel);
+		output3b.add(outputFolder);
 		output3b.add(directoryBtn);
-		directoryBtn.addActionListener(e -> chooseDirectory(directory));
+		directoryBtn.addActionListener(e -> chooseDirectory(outputFolder));
 		output3b.setVisible(false);
 
 		// choice of output
@@ -789,10 +805,10 @@ public class BatchWindow extends PlugInFrame implements BatchListener {
 	private boolean getLocalOutput() {
 		boolean check = false;
 		if (localOutput.isSelected()) {
-			if (directory.getText().equals("")) {
+			if (outputFolder.getText().equals("")) {
 				errorWindow(String.format("Output:%nNo directory selected"));
 			} else {
-				directoryOut = directory.getText();
+				directoryOut = outputFolder.getText();
 				File directoryOutFile = new File(directoryOut);
 				if (directoryOutFile.exists() && directoryOutFile.isDirectory()) {
 					check = true;
