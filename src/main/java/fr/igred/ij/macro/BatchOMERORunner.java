@@ -54,7 +54,7 @@ public class BatchOMERORunner extends Thread {
 	private long inputDatasetId;
 	private long outputDatasetId;
 	private long outputProjectId;
-	private String directoryIn;
+	private String directoryIn = "";
 	private String directoryOut;
 	private String macro;
 	private String suffix;
@@ -178,8 +178,9 @@ public class BatchOMERORunner extends Thread {
 		//""" List all image's paths contained in a directory """
 		File dir = new File(directory);
 		File[] files = dir.listFiles();
+		if(files == null) files = new File[0];
 		List<String> pathsImagesIni = new ArrayList<>();
-		for (File value : Objects.requireNonNull(files)) {
+		for (File value : files) {
 			String file = value.getAbsolutePath();
 			pathsImagesIni.add(file);
 		}
