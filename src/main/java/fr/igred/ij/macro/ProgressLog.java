@@ -1,10 +1,8 @@
-package fr.igred.ij.io;
-
-import fr.igred.ij.io.ProcessingProgress;
+package fr.igred.ij.macro;
 
 import java.util.logging.Logger;
 
-public class ProgressLog implements ProcessingProgress {
+public class ProgressLog implements ProgressMonitor {
 
 	private final Logger logger;
 

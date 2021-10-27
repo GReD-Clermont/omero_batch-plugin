@@ -1,7 +1,7 @@
 package fr.igred.ij.plugin.frame;
 
-import fr.igred.ij.io.ConnectDialog;
-import fr.igred.ij.io.ProgressDialog;
+import fr.igred.ij.gui.ConnectOMERODialog;
+import fr.igred.ij.gui.ProgressDialog;
 import fr.igred.ij.macro.BatchListener;
 import fr.igred.omero.Client;
 import fr.igred.omero.exception.AccessException;
@@ -15,7 +15,7 @@ import fr.igred.omero.repository.ProjectWrapper;
 import ij.IJ;
 import ij.plugin.frame.PlugInFrame;
 import loci.plugins.config.SpringUtilities;
-import fr.igred.ij.macro.BatchRunner;
+import fr.igred.ij.macro.BatchOMERORunner;
 
 import javax.swing.*;
 import java.awt.Color;
@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 
 import static javax.swing.JOptionPane.showMessageDialog;
 
-public class BatchOMERO extends PlugInFrame implements BatchListener {
+public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 	// connection management
 	private final JLabel connectionStatus = new JLabel("Disconnected");
 	private final JButton connect = new JButton("Connect");
@@ -110,7 +110,7 @@ public class BatchOMERO extends PlugInFrame implements BatchListener {
 	private transient ExperimenterWrapper exp;
 
 
-	public BatchOMERO() {
+	public BatchOMEROPlugin() {
 		super("batch-omero-plugin");
 		this.client = new Client();
 
@@ -127,7 +127,7 @@ public class BatchOMERO extends PlugInFrame implements BatchListener {
 		final String projectName = "Project Name: ";
 		final String datasetName = "Dataset Name: ";
 		final String browse = "Browse";
-		this.setSize(630, 620);
+		this.setSize(720, 640);
 		this.setMinimumSize(this.getSize());
 		this.setLocationRelativeTo(null);
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
@@ -168,6 +168,7 @@ public class BatchOMERO extends PlugInFrame implements BatchListener {
 		input1a.add(labelGroup);
 		input1a.add(groupList);
 		input1a.add(labelGroupName);
+		input1a.add(Box.createRigidArea(new Dimension(20, 0)));
 		input1a.add(labelUser);
 		input1a.add(userList);
 		groupList.addItemListener(this::updateGroup);
@@ -185,9 +186,11 @@ public class BatchOMERO extends PlugInFrame implements BatchListener {
 		input1b.add(labelProjectIn);
 		input1b.add(projectListIn);
 		input1b.add(labelInputProject);
+		input1b.add(Box.createRigidArea(new Dimension(20, 0)));
 		input1b.add(labelDatasetIn);
 		input1b.add(datasetListIn);
 		input1b.add(labelInputDataset);
+		input1b.add(Box.createRigidArea(new Dimension(20, 0)));
 		input1b.add(preview);
 		projectListIn.addItemListener(this::updateInputProject);
 		datasetListIn.addItemListener(this::updateInputDataset);
@@ -275,9 +278,11 @@ public class BatchOMERO extends PlugInFrame implements BatchListener {
 		output3a.add(labelProjectOut);
 		output3a.add(projectListOut);
 		output3a.add(labelOutputProject);
+		output3a.add(Box.createRigidArea(new Dimension(20, 0)));
 		output3a.add(labelDatasetOut);
 		output3a.add(datasetListOut);
 		output3a.add(labelOutputDataset);
+		output3a.add(Box.createRigidArea(new Dimension(20, 0)));
 		output3a.add(newDatasetBtn);
 		projectListOut.addItemListener(this::updateOutputProject);
 		datasetListOut.addItemListener(this::updateOutputDataset);
@@ -576,7 +581,7 @@ public class BatchOMERO extends PlugInFrame implements BatchListener {
 
 	private boolean connect() {
 		boolean connected = false;
-		ConnectDialog connectDialog = new ConnectDialog(client);
+		ConnectOMERODialog connectDialog = new ConnectOMERODialog(client);
 		if (!connectDialog.wasCancelled()) {
 
 			long groupId = client.getCurrentGroupId();
@@ -662,7 +667,7 @@ public class BatchOMERO extends PlugInFrame implements BatchListener {
 
 	public void start(ActionEvent e) {
 		ProgressDialog progress = new ProgressDialog();
-		BatchRunner runner = new BatchRunner(client, progress);
+		BatchOMERORunner runner = new BatchOMERORunner(client, progress);
 		runner.addListener(this);
 
 		// initiation of success variables

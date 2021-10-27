@@ -1,8 +1,6 @@
 package fr.igred.ij.macro;
 
-import fr.igred.ij.io.ProcessingProgress;
-import fr.igred.ij.io.ProgressDialog;
-import fr.igred.ij.io.ProgressLog;
+import fr.igred.ij.gui.ProgressDialog;
 import fr.igred.omero.Client;
 import fr.igred.omero.annotations.TableWrapper;
 import fr.igred.omero.exception.AccessException;
@@ -37,10 +35,10 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 
-public class BatchRunner extends Thread {
+public class BatchOMERORunner extends Thread {
 
 	private final Client client;
-	private final ProcessingProgress progress;
+	private final ProgressMonitor progress;
 
 	private final Map<String, TableWrapper> tables = new HashMap<>();
 
@@ -66,14 +64,14 @@ public class BatchRunner extends Thread {
 	private BatchListener listener;
 
 
-	public BatchRunner(Client client) {
+	public BatchOMERORunner(Client client) {
 		super();
 		this.client = client;
 		this.progress = new ProgressLog(Logger.getLogger(getClass().getName()));
 	}
 
 
-	public BatchRunner(Client client, ProcessingProgress progress) {
+	public BatchOMERORunner(Client client, ProgressMonitor progress) {
 		super();
 		this.client = client;
 		this.progress = progress;
