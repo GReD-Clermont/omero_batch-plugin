@@ -1,8 +1,8 @@
-package fr.igred.ij.plugin;
+package fr.igred.ij.plugin.frame;
 
-import fr.igred.ij.gui.ConnectDialog;
-import fr.igred.ij.gui.ProgressDialog;
-import fr.igred.ij.process.BatchListener;
+import fr.igred.ij.io.ConnectDialog;
+import fr.igred.ij.io.ProgressDialog;
+import fr.igred.ij.macro.BatchListener;
 import fr.igred.omero.Client;
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
@@ -15,7 +15,7 @@ import fr.igred.omero.repository.ProjectWrapper;
 import ij.IJ;
 import ij.plugin.frame.PlugInFrame;
 import loci.plugins.config.SpringUtilities;
-import fr.igred.ij.process.BatchRunner;
+import fr.igred.ij.macro.BatchRunner;
 
 import javax.swing.*;
 import java.awt.Color;

@@ -1,6 +1,4 @@
-package fr.igred.ij.gui;
-
-import fr.igred.ij.process.ProcessingProgress;
+package fr.igred.ij.io;
 
 import javax.swing.*;
 import java.awt.Container;

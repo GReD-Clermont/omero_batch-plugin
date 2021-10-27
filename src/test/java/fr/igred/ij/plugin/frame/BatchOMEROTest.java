@@ -1,4 +1,4 @@
-package fr.igred.ij.plugin;
+package fr.igred.ij.plugin.frame;
 
 
 import ij.IJ;

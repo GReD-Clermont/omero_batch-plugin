@@ -1,4 +1,4 @@
-package fr.igred.ij.process;
+package fr.igred.ij.macro;
 
 import java.util.EventListener;
 

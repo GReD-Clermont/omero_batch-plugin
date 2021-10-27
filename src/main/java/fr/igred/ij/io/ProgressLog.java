@@ -1,4 +1,6 @@
-package fr.igred.ij.process;
+package fr.igred.ij.io;
+
+import fr.igred.ij.io.ProcessingProgress;
 
 import java.util.logging.Logger;
 

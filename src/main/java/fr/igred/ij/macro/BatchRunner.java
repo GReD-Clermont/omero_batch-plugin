@@ -1,6 +1,8 @@
-package fr.igred.ij.process;
+package fr.igred.ij.macro;
 
-import fr.igred.ij.gui.ProgressDialog;
+import fr.igred.ij.io.ProcessingProgress;
+import fr.igred.ij.io.ProgressDialog;
+import fr.igred.ij.io.ProgressLog;
 import fr.igred.omero.Client;
 import fr.igred.omero.annotations.TableWrapper;
 import fr.igred.omero.exception.AccessException;

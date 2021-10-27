@@ -1,4 +1,4 @@
-package fr.igred.ij.gui;
+package fr.igred.ij.io;
 
 import fr.igred.omero.Client;
 import fr.igred.omero.exception.ServiceException;
