@@ -1,4 +1,4 @@
-package mica.gui;
+package fr.igred.ij.gui;
 
 import fr.igred.omero.Client;
 import fr.igred.omero.exception.ServiceException;

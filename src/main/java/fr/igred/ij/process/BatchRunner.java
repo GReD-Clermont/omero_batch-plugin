@@ -1,5 +1,6 @@
-package mica.process;
+package fr.igred.ij.process;
 
+import fr.igred.ij.gui.ProgressDialog;
 import fr.igred.omero.Client;
 import fr.igred.omero.annotations.TableWrapper;
 import fr.igred.omero.exception.AccessException;
@@ -21,7 +22,6 @@ import loci.formats.FormatException;
 import loci.plugins.BF;
 import loci.plugins.in.ImportProcess;
 import loci.plugins.in.ImporterOptions;
-import mica.gui.ProgressDialog;
 import org.apache.commons.io.FilenameUtils;
 
 import java.awt.Frame;

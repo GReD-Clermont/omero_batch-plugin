@@ -9,7 +9,7 @@
         <version>12.0.0</version>
     </parent>
 
-    <groupId>mica</groupId>
+    <groupId>fr.igred</groupId>
     <artifactId>batch-omero-plugin</artifactId>
     <version>1.0.0</version>
 

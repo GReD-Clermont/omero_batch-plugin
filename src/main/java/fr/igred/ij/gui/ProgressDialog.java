@@ -1,6 +1,6 @@
-package mica.gui;
+package fr.igred.ij.gui;
 
-import mica.process.ProcessingProgress;
+import fr.igred.ij.process.ProcessingProgress;
 
 import javax.swing.*;
 import java.awt.Container;

@@ -1,14 +1,13 @@
-package mica;
+package fr.igred.ij.plugin;
 
 
 import ij.IJ;
-import mica.gui.BatchWindow;
 
 
 public class BatchOMEROTest {
 
     public static void main(String[] args) {
-        Class<?> clazz = BatchWindow.class;
+        Class<?> clazz = BatchOMERO.class;
         String name = clazz.getName();
         String url = clazz.getResource("/" +
                                        name.replace('.', '/') +

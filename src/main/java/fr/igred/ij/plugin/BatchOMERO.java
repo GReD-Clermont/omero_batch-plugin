@@ -1,5 +1,8 @@
-package mica.gui;
+package fr.igred.ij.plugin;
 
+import fr.igred.ij.gui.ConnectDialog;
+import fr.igred.ij.gui.ProgressDialog;
+import fr.igred.ij.process.BatchListener;
 import fr.igred.omero.Client;
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
@@ -12,8 +15,7 @@ import fr.igred.omero.repository.ProjectWrapper;
 import ij.IJ;
 import ij.plugin.frame.PlugInFrame;
 import loci.plugins.config.SpringUtilities;
-import mica.process.BatchListener;
-import mica.process.BatchRunner;
+import fr.igred.ij.process.BatchRunner;
 
 import javax.swing.*;
 import java.awt.Color;
@@ -32,7 +34,7 @@ import java.util.stream.Collectors;
 
 import static javax.swing.JOptionPane.showMessageDialog;
 
-public class BatchWindow extends PlugInFrame implements BatchListener {
+public class BatchOMERO extends PlugInFrame implements BatchListener {
 	// connection management
 	private final JLabel connectionStatus = new JLabel("Disconnected");
 	private final JButton connect = new JButton("Connect");
@@ -108,7 +110,7 @@ public class BatchWindow extends PlugInFrame implements BatchListener {
 	private transient ExperimenterWrapper exp;
 
 
-	public BatchWindow() {
+	public BatchOMERO() {
 		super("batch-omero-plugin");
 		this.client = new Client();
 

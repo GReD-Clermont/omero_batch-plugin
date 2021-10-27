@@ -1,4 +1,4 @@
-package mica.process;
+package fr.igred.ij.process;
 
 public interface ProcessingProgress {
 
