@@ -560,11 +560,6 @@ public class BatchWindow extends PlugInFrame implements BatchListener {
 		boolean connected = false;
 		ConnectDialog connectDialog = new ConnectDialog(client);
 		if (!connectDialog.wasCancelled()) {
-			connectionStatus.setText("Connected");
-			connectionStatus.setForeground(new Color(0, 153, 0));
-			connect.setVisible(false);
-			disconnect.setVisible(true);
-			omero.setSelected(true);
 
 			long groupId = client.getCurrentGroupId();
 
@@ -579,6 +574,12 @@ public class BatchWindow extends PlugInFrame implements BatchListener {
 			for (GroupWrapper group : groups) {
 				groupList.addItem(group.getName());
 			}
+
+			connectionStatus.setText("Connected");
+			connectionStatus.setForeground(new Color(0, 153, 0));
+			connect.setVisible(false);
+			disconnect.setVisible(true);
+			omero.setSelected(true);
 
 			int index;
 			for (index = 0; index < groups.size(); index++) {
