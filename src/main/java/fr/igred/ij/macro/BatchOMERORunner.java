@@ -1,5 +1,6 @@
-package mica.process;
+package fr.igred.ij.macro;
 
+import fr.igred.ij.gui.ProgressDialog;
 import fr.igred.omero.Client;
 import fr.igred.omero.annotations.TableWrapper;
 import fr.igred.omero.exception.AccessException;
@@ -21,7 +22,6 @@ import loci.formats.FormatException;
 import loci.plugins.BF;
 import loci.plugins.in.ImportProcess;
 import loci.plugins.in.ImporterOptions;
-import mica.gui.ProgressDialog;
 import org.apache.commons.io.FilenameUtils;
 
 import java.awt.Frame;
@@ -35,10 +35,10 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 
-public class BatchRunner extends Thread {
+public class BatchOMERORunner extends Thread {
 
 	private final Client client;
-	private final ProcessingProgress progress;
+	private final ProgressMonitor progress;
 
 	private final Map<String, TableWrapper> tables = new HashMap<>();
 
@@ -54,7 +54,7 @@ public class BatchRunner extends Thread {
 	private long inputDatasetId;
 	private long outputDatasetId;
 	private long outputProjectId;
-	private String directoryIn;
+	private String directoryIn = "";
 	private String directoryOut;
 	private String macro;
 	private String suffix;
@@ -64,14 +64,14 @@ public class BatchRunner extends Thread {
 	private BatchListener listener;
 
 
-	public BatchRunner(Client client) {
+	public BatchOMERORunner(Client client) {
 		super();
 		this.client = client;
 		this.progress = new ProgressLog(Logger.getLogger(getClass().getName()));
 	}
 
 
-	public BatchRunner(Client client, ProcessingProgress progress) {
+	public BatchOMERORunner(Client client, ProgressMonitor progress) {
 		super();
 		this.client = client;
 		this.progress = progress;
@@ -178,8 +178,9 @@ public class BatchRunner extends Thread {
 		//""" List all image's paths contained in a directory """
 		File dir = new File(directory);
 		File[] files = dir.listFiles();
+		if(files == null) files = new File[0];
 		List<String> pathsImagesIni = new ArrayList<>();
-		for (File value : Objects.requireNonNull(files)) {
+		for (File value : files) {
 			String file = value.getAbsolutePath();
 			pathsImagesIni.add(file);
 		}

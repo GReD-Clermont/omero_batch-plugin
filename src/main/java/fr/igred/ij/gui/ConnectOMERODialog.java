@@ -1,4 +1,4 @@
-package mica.gui;
+package fr.igred.ij.gui;
 
 import fr.igred.omero.Client;
 import fr.igred.omero.exception.ServiceException;
@@ -15,7 +15,7 @@ import java.util.concurrent.ExecutionException;
 import static javax.swing.JOptionPane.showMessageDialog;
 
 
-public class ConnectDialog extends JDialog implements ActionListener {
+public class ConnectOMERODialog extends JDialog implements ActionListener {
 
 	private final transient Client client;
 
@@ -28,7 +28,7 @@ public class ConnectDialog extends JDialog implements ActionListener {
 	private boolean cancelled;
 
 
-	public ConnectDialog(Client client) {
+	public ConnectOMERODialog(Client client) {
 		super();
 		this.setModal(true);
 		this.client = client;

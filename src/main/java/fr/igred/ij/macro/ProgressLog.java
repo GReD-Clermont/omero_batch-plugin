@@ -1,8 +1,8 @@
-package mica.process;
+package fr.igred.ij.macro;
 
 import java.util.logging.Logger;
 
-public class ProgressLog implements ProcessingProgress {
+public class ProgressLog implements ProgressMonitor {
 
 	private final Logger logger;
 

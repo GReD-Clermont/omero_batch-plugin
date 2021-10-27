@@ -1,4 +1,4 @@
-package mica.process;
+package fr.igred.ij.macro;
 
 import java.util.EventListener;
 

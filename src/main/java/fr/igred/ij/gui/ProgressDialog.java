@@ -1,13 +1,13 @@
-package mica.gui;
+package fr.igred.ij.gui;
 
-import mica.process.ProcessingProgress;
+import fr.igred.ij.macro.ProgressMonitor;
 
 import javax.swing.*;
 import java.awt.Container;
 import java.awt.Font;
 
 
-public class ProgressDialog extends JFrame implements ProcessingProgress {
+public class ProgressDialog extends JFrame implements ProgressMonitor {
 	private final JLabel progressLabel = new JLabel("", SwingConstants.CENTER);
 	private final JLabel stateLabel = new JLabel("", SwingConstants.CENTER);
 	private final JButton ok = new JButton("OK");

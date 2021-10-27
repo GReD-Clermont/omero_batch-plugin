@@ -1,6 +1,6 @@
-package mica.process;
+package fr.igred.ij.macro;
 
-public interface ProcessingProgress {
+public interface ProgressMonitor {
 
 	void setProgress(String text);
 
