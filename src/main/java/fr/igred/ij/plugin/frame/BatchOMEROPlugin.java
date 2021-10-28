@@ -118,7 +118,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 			@Override
 			public void windowClosing(WindowEvent e) {
 				super.windowClosing(e);
-				disconnect();
+				client.disconnect();
 			}
 		});
 
@@ -361,6 +361,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 				labelInputDataset.setText(idLabel(dataset.getId()));
 			}
 		}
+		this.repack();
 	}
 
 
@@ -391,6 +392,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 				labelOutputDataset.setText(idLabel(dataset.getId()));
 			}
 		}
+		this.repack();
 	}
 
 
@@ -534,6 +536,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 			input1b.setVisible(false);
 			input1a.setVisible(false);
 		}
+		this.repack();
 	}
 
 
@@ -874,6 +877,14 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 		check &= checkDeleteROIs();
 
 		return check;
+	}
+
+
+	private void repack() {
+		Dimension minSize = this.getMinimumSize();
+		this.setMinimumSize(this.getSize());
+		this.pack();
+		this.setMinimumSize(minSize);
 	}
 
 }
