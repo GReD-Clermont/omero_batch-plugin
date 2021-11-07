@@ -100,7 +100,9 @@ public class ScriptRunner {
 
 	public void run() {
 		boolean macro = getLanguage().equals("IJ1 Macro");
-		if (isSciJavaLoaded() && detectedInputs && !macro) {
+		if (isSciJavaLoaded() && !macro) {
+			scijavaRun();
+		} else if(isSciJavaLoaded() && detectedInputs) {
 			scijavaRun();
 		} else {
 			try {

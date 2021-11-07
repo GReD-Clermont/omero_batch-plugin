@@ -154,6 +154,12 @@
         </dependency>
 		<dependency>
 			<groupId>org.scijava</groupId>
+			<artifactId>scijava-common</artifactId>
+			<scope>provided</scope>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.scijava</groupId>
 			<artifactId>scijava-ui-swing</artifactId>
 			<scope>provided</scope>
 			<optional>true</optional>

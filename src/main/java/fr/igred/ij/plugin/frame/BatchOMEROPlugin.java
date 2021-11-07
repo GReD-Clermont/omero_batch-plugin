@@ -588,9 +588,11 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 				warningWindow(String.format("Macro:%nThe file doesn't exist"));
 			}
 		}
-		script = new ScriptRunner(macro.getText());
-		labelLanguage.setText("Language: "+ script.getLanguage());
-		labelArguments.setText("Arguments: " + script.getArguments());
+		if(!macro.getText().isEmpty()) {
+			script = new ScriptRunner(macro.getText());
+			labelLanguage.setText("Language: " + script.getLanguage());
+			labelArguments.setText("Arguments: " + script.getArguments());
+		}
 	}
 
 

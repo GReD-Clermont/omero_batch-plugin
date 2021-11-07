@@ -180,7 +180,7 @@ public class BatchOMERORunner extends Thread {
 		//""" List all image's paths contained in a directory """
 		File dir = new File(directory);
 		File[] files = dir.listFiles();
-		if(files == null) files = new File[0];
+		if (files == null) files = new File[0];
 		List<String> pathsImagesIni = new ArrayList<>();
 		for (File value : files) {
 			String file = value.getAbsolutePath();
@@ -353,7 +353,7 @@ public class BatchOMERORunner extends Thread {
 		int ijOutputId = outputImage.getID();
 
 		int[] imageIds = WindowManager.getIDList();
-		if(imageIds == null) {
+		if (imageIds == null) {
 			imageIds = new int[0];
 		}
 		List<Integer> idList = Arrays.stream(imageIds).boxed().collect(Collectors.toList());
