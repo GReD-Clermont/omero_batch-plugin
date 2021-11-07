@@ -152,6 +152,12 @@
             <artifactId>simple-omero-client</artifactId>
             <version>${soc.version}</version>
         </dependency>
+		<dependency>
+			<groupId>org.scijava</groupId>
+			<artifactId>scijava-ui-swing</artifactId>
+			<scope>provided</scope>
+			<optional>true</optional>
+		</dependency>
     </dependencies>
 
     <repositories>

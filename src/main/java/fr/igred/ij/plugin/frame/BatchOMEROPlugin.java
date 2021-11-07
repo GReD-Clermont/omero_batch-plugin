@@ -3,6 +3,8 @@ package fr.igred.ij.plugin.frame;
 import fr.igred.ij.gui.ConnectOMERODialog;
 import fr.igred.ij.gui.ProgressDialog;
 import fr.igred.ij.macro.BatchListener;
+import fr.igred.ij.macro.BatchOMERORunner;
+import fr.igred.ij.macro.ScriptRunner;
 import fr.igred.omero.Client;
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
@@ -15,7 +17,6 @@ import fr.igred.omero.repository.ProjectWrapper;
 import ij.IJ;
 import ij.plugin.frame.PlugInFrame;
 import loci.plugins.config.SpringUtilities;
-import fr.igred.ij.macro.BatchOMERORunner;
 
 import javax.swing.*;
 import java.awt.Color;
@@ -66,6 +67,8 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 	// choice of the record
 	private final JTextField inputFolder = new JTextField(20);
 	private final JTextField macro = new JTextField(20);
+	private final JLabel labelLanguage = new JLabel();
+	private final JLabel labelArguments = new JLabel();
 	private final JCheckBox checkImage = new JCheckBox("New image(s)");
 	private final JCheckBox checkResults = new JCheckBox("Results table(s)");
 	private final JCheckBox checkROIs = new JCheckBox("ROIs");
@@ -95,7 +98,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 
 	//variables to keep
 	private final transient Client client;
-	private String macroChosen;
+	private transient ScriptRunner script;
 	private String directoryOut;
 	private String directoryIn;
 	private Long outputDatasetId;
@@ -221,24 +224,34 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 		JPanel macro1 = new JPanel();
 		JLabel macroLabel = new JLabel("Macro file: ");
 		JButton macroBtn = new JButton(browse);
+		JButton argsBtn = new JButton("Set arguments");
 		macroLabel.setLabelFor(macro);
-		macro.setMaximumSize(new Dimension(300, 30));
+		macro.setMaximumSize(new Dimension(300, 18));
 		macro1.add(macroLabel);
 		macro1.add(macro);
 		macro1.add(macroBtn);
+		macro1.add(argsBtn);
 		macroBtn.addActionListener(e -> chooseMacro());
+		argsBtn.addActionListener(e -> setArguments());
 
 		JPanel macro2 = new JPanel();
-		macro2.setLayout(new BoxLayout(macro2, BoxLayout.LINE_AXIS));
-		JLabel macroReturnLabel = new JLabel("The macro returns: ");
-		macro2.add(macroReturnLabel);
+		macro2.setLayout(new BoxLayout(macro2, BoxLayout.PAGE_AXIS));
+		labelLanguage.setFont(nameFont);
+		labelArguments.setFont(nameFont);
+		macro2.add(labelLanguage);
+		macro2.add(labelArguments);
 
 		JPanel macro3 = new JPanel();
 		macro3.setLayout(new BoxLayout(macro3, BoxLayout.LINE_AXIS));
-		macro3.add(checkImage);
-		macro3.add(checkResults);
-		macro3.add(checkROIs);
-		macro3.add(checkLog);
+		JLabel macroReturnLabel = new JLabel("The macro returns: ");
+		macro3.add(macroReturnLabel);
+
+		JPanel macro4 = new JPanel();
+		macro4.setLayout(new BoxLayout(macro4, BoxLayout.LINE_AXIS));
+		macro4.add(checkImage);
+		macro4.add(checkResults);
+		macro4.add(checkROIs);
+		macro4.add(checkLog);
 		checkImage.addActionListener(this::updateOutput);
 		checkResults.addActionListener(this::updateOutput);
 		checkROIs.addActionListener(this::updateOutput);
@@ -248,7 +261,9 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 		JPanel panelMacro = new JPanel();
 		panelMacro.add(macro1);
 		panelMacro.add(macro2);
+		panelMacro.add(Box.createRigidArea(new Dimension(0, 20)));
 		panelMacro.add(macro3);
+		panelMacro.add(macro4);
 		panelMacro.setLayout(new BoxLayout(panelMacro, BoxLayout.PAGE_AXIS));
 		panelMacro.setBorder(BorderFactory.createTitledBorder("Macro"));
 		this.add(panelMacro);
@@ -573,6 +588,18 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 				warningWindow(String.format("Macro:%nThe file doesn't exist"));
 			}
 		}
+		script = new ScriptRunner(macro.getText());
+		labelLanguage.setText("Language: "+ script.getLanguage());
+		labelArguments.setText("Arguments: " + script.getArguments());
+	}
+
+
+	private void setArguments() {
+		if(script != null) {
+			script.inputsDialog();
+			labelLanguage.setText("Language: "+ script.getLanguage());
+			labelArguments.setText("Arguments: " + script.getArguments());
+		}
 	}
 
 
@@ -670,7 +697,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 
 	public void start(ActionEvent e) {
 		ProgressDialog progress = new ProgressDialog();
-		BatchOMERORunner runner = new BatchOMERORunner(client, progress);
+		BatchOMERORunner runner = new BatchOMERORunner(script, client, progress);
 		runner.addListener(this);
 
 		// initiation of success variables
@@ -720,7 +747,6 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 			runner.setDirectoryOut(directoryOut);
 		}
 
-		runner.setMacro(macroChosen);
 		start.setEnabled(false);
 		try {
 			runner.start();
@@ -778,7 +804,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 		if (macro.getText().equals("")) {
 			errorWindow(String.format("Macro:%nNo macro selected"));
 		} else {
-			macroChosen = macro.getText();
+			String macroChosen = macro.getText();
 			File macroFile = new File(macroChosen);
 			if (macroFile.exists() && !macroFile.isDirectory()) {
 				check = true;

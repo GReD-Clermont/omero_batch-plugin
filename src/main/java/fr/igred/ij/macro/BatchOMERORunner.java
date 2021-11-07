@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 
 public class BatchOMERORunner extends Thread {
 
+	private final ScriptRunner script;
 	private final Client client;
 	private final ProgressMonitor progress;
 
@@ -56,7 +57,6 @@ public class BatchOMERORunner extends Thread {
 	private long outputProjectId;
 	private String directoryIn = "";
 	private String directoryOut;
-	private String macro;
 	private String suffix;
 
 	private RoiManager rm;
@@ -64,15 +64,17 @@ public class BatchOMERORunner extends Thread {
 	private BatchListener listener;
 
 
-	public BatchOMERORunner(Client client) {
+	public BatchOMERORunner(ScriptRunner script, Client client) {
 		super();
+		this.script = script;
 		this.client = client;
 		this.progress = new ProgressLog(Logger.getLogger(getClass().getName()));
 	}
 
 
-	public BatchOMERORunner(Client client, ProgressMonitor progress) {
+	public BatchOMERORunner(ScriptRunner script, Client client, ProgressMonitor progress) {
 		super();
+		this.script = script;
 		this.client = client;
 		this.progress = progress;
 	}
@@ -220,7 +222,6 @@ public class BatchOMERORunner extends Thread {
 		//""" Run a macro on images and save the result """
 		String property = "ROI";
 		ij.WindowManager.closeAllWindows();
-		String call = "0";
 		int index = 0;
 		for (ImageWrapper image : images) {
 			setProgress("Image " + (index + 1) + "/" + images.size());
@@ -243,8 +244,7 @@ public class BatchOMERORunner extends Thread {
 			imp.show();
 
 			// Analyse the images.
-			IJ.runMacroFile(macro, call);
-			call = "1";
+			script.run();
 
 			imp.changes = false; // Prevent "Save Changes?" dialog
 			save(imp, inputImageId, title, property);
@@ -258,7 +258,6 @@ public class BatchOMERORunner extends Thread {
 		//""" Run a macro on images from local computer and save the result """
 		String property = "ROI";
 		WindowManager.closeAllWindows();
-		String call = "0";
 		int index = 0;
 		for (String image : images) {
 			// Open the image
@@ -294,8 +293,7 @@ public class BatchOMERORunner extends Thread {
 				String title = removeExtension(imp.getTitle());
 
 				// Analyse the images
-				IJ.runMacroFile(macro, call);
-				call = "1";
+				script.run();
 
 				// Save and Close the various components
 				imp.changes = false; // Prevent "Save Changes?" dialog
@@ -670,16 +668,6 @@ public class BatchOMERORunner extends Thread {
 
 	public void setDirectoryOut(String directoryOut) {
 		this.directoryOut = directoryOut;
-	}
-
-
-	public String getMacro() {
-		return macro;
-	}
-
-
-	public void setMacro(String macro) {
-		this.macro = macro;
 	}
 
 
