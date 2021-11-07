@@ -17,6 +17,7 @@ import org.scijava.ui.swing.widget.SwingInputPanel;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -115,8 +116,21 @@ public class ScriptRunner {
 	}
 
 
+	public void reset() {
+		inputs.keySet().forEach(script::unresolveInput);
+	}
+
+
 	private void scijavaRun() {
-		for(String key : inputs.keySet()) {
+		for (ModuleItem<?> input : script.getInfo().inputs()) {
+			if (input.getType().equals(ImagePlus.class)) {
+				String imageArg = input.getName();
+				script.unresolveInput(imageArg);
+				script.setInput(imageArg, IJ.getImage());
+				script.resolveInput(imageArg);
+			}
+		}
+		for (String key : inputs.keySet()) {
 			script.resolveInput(key);
 		}
 		script.run();
@@ -132,11 +146,13 @@ public class ScriptRunner {
 		} catch (ModuleException e) {
 			IJ.error(e.getMessage());
 		}
-		inputHarvester.harvestInputs(inputPanel, script);
-		inputs = script.getInputs();
-		for (ModuleItem<?> input : script.getInfo().inputs()) {
-			if (input.getType().equals(ImagePlus.class)) {
-				inputs.remove(input.getName());
+		boolean harvested = inputHarvester.harvestInputs(inputPanel, script);
+		if (harvested) {
+			inputs = script.getInputs();
+			for (ModuleItem<?> input : script.getInfo().inputs()) {
+				if (input.getType().equals(ImagePlus.class)) {
+					inputs.remove(input.getName());
+				}
 			}
 		}
 	}
@@ -162,14 +178,18 @@ public class ScriptRunner {
 				language = lang.getLanguageName();
 			}
 
-			int nInputs = script.getInputs().size();
+			inputs = new LinkedHashMap<>(script.getInputs().size());
 			for (ModuleItem<?> input : script.getInfo().inputs()) {
 				if (input.getType().equals(ImagePlus.class)) {
 					script.resolveInput(input.getName());
-					nInputs--;
+				} else {
+					inputs.put(input.getName(), input.getDefaultValue());
 				}
 			}
-			detectedInputs = nInputs > 0;
+			detectedInputs = inputs.size() > 0;
+			if(detectedInputs) {
+				script.setInputs(inputs);
+			}
 		}
 	}
 

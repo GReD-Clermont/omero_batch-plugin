@@ -606,6 +606,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 	@Override
 	public void onThreadFinished() {
 		start.setEnabled(true);
+		script.reset();
 	}
 
 
