@@ -135,6 +135,13 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 		this.setLocationRelativeTo(null);
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 
+		JPanel panelWarning = new JPanel();
+		JLabel warning = new JLabel("Warning: all windows will be closed.");
+		warning.setForeground(new Color(250, 140, 0));
+		warning.setFont(new Font("Arial", Font.ITALIC + Font.BOLD, 12));
+		panelWarning.add(warning);
+		this.add(panelWarning);
+
 		JPanel connection = new JPanel();
 		JLabel labelConnection = new JLabel("Connection status: ");
 		labelConnection.setLabelFor(connectionStatus);
@@ -151,7 +158,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 		this.add(connection);
 
 		JPanel source = new JPanel();
-		JLabel labelEnterType = new JLabel("Where to get images to analyse :");
+		JLabel labelEnterType = new JLabel("Where to get images to analyse:");
 		ButtonGroup inputData = new ButtonGroup();
 		inputData.add(omero);
 		inputData.add(local);
@@ -268,7 +275,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 		panelMacro.setBorder(BorderFactory.createTitledBorder("Macro"));
 		this.add(panelMacro);
 
-		JLabel labelExtension = new JLabel("Suffix of output files :");
+		JLabel labelExtension = new JLabel("Suffix of output files:");
 		labelExtension.setLabelFor(suffix);
 		suffix.setText("_macro");
 		output1.add(labelExtension);
@@ -276,7 +283,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 		output1.setVisible(false);
 
 		JPanel output2 = new JPanel();
-		JLabel labelRecordOption = new JLabel("Where to save results :");
+		JLabel labelRecordOption = new JLabel("Where to save results:");
 		output2.add(labelRecordOption);
 		output2.add(onlineOutput);
 		output2.add(localOutput);
@@ -588,7 +595,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 				warningWindow(String.format("Macro:%nThe file doesn't exist"));
 			}
 		}
-		if(!macro.getText().isEmpty()) {
+		if (!macro.getText().isEmpty()) {
 			script = ScriptRunner.createScriptRunner(macro.getText());
 			labelLanguage.setText("Language: " + script.getLanguage());
 			labelArguments.setText("Arguments: " + script.getArguments());
@@ -597,9 +604,9 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 
 
 	private void setArguments() {
-		if(script != null) {
-			script.inputsDialog();
-			labelLanguage.setText("Language: "+ script.getLanguage());
+		if (script != null) {
+			script.showInputDialog();
+			labelLanguage.setText("Language: " + script.getLanguage());
 			labelArguments.setText("Arguments: " + script.getArguments());
 		}
 	}

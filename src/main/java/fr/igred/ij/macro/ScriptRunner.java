@@ -1,6 +1,7 @@
 package fr.igred.ij.macro;
 
 import ij.IJ;
+import ij.ImagePlus;
 import ij.gui.GenericDialog;
 
 
@@ -38,8 +39,18 @@ public class ScriptRunner {
 	}
 
 
+	public void setImage(ImagePlus imp) {
+		IJ.selectWindow(imp.getID());
+	}
+
+
 	public String getArguments() {
 		return arguments;
+	}
+
+
+	public void setArguments(String arguments) {
+		this.arguments = arguments;
 	}
 
 
@@ -48,12 +59,12 @@ public class ScriptRunner {
 	}
 
 
-	public void inputsDialog() {
+	public void showInputDialog() {
 		GenericDialog dialog = new GenericDialog("Input parameters");
 		dialog.addStringField("Input parameters (separated by commas, eg: var1=x,var2=y)", arguments, 100);
 		dialog.showDialog();
 		if (dialog.wasOKed()) {
-			arguments = dialog.getNextString();
+			this.setArguments(dialog.getNextString());
 		}
 	}
 

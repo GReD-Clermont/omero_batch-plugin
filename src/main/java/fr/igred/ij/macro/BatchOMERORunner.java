@@ -242,7 +242,8 @@ public class BatchOMERORunner extends Thread {
 
 			imp.show();
 
-			// Analyse the images.
+			// Analyse the image
+			script.setImage(imp);
 			script.run();
 
 			imp.changes = false; // Prevent "Save Changes?" dialog
@@ -291,7 +292,8 @@ public class BatchOMERORunner extends Thread {
 				// Remove extension from title
 				String title = removeExtension(imp.getTitle());
 
-				// Analyse the images
+				// Analyse the image
+				script.setImage(imp);
 				script.run();
 
 				// Save and Close the various components
