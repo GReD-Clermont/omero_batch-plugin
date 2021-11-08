@@ -147,6 +147,12 @@
             <version>6.6.1</version>
             <scope>provided</scope>
         </dependency>
+		<dependency>
+			<groupId>ome</groupId>
+			<artifactId>formats-api</artifactId>
+			<version>6.6.1</version>
+			<scope>provided</scope>
+		</dependency>
         <dependency>
             <groupId>fr.igred</groupId>
             <artifactId>simple-omero-client</artifactId>

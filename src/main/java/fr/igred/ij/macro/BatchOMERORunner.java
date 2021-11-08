@@ -22,7 +22,6 @@ import loci.formats.FormatException;
 import loci.plugins.BF;
 import loci.plugins.in.ImportProcess;
 import loci.plugins.in.ImporterOptions;
-import org.apache.commons.io.FilenameUtils;
 
 import java.awt.Frame;
 import java.io.File;
@@ -307,10 +306,17 @@ public class BatchOMERORunner extends Thread {
 
 
 	private String removeExtension(String title) {
-		if (title.matches("(.*)qptiff(.*)")) {
+		if (title != null && title.matches("(.*)qptiff(.*)")) {
 			return title.replace(".qptiff", "_");
+		} else if (title != null) {
+			int index = title.lastIndexOf('.');
+			if (index == 0 || index == -1) {
+				return title;
+			} else {
+				return title.substring(0, index);
+			}
 		} else {
-			return FilenameUtils.removeExtension(title);
+			return null;
 		}
 	}
 
