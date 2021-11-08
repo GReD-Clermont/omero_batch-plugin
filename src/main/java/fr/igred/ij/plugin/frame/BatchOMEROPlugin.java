@@ -589,7 +589,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 			}
 		}
 		if(!macro.getText().isEmpty()) {
-			script = new ScriptRunner(macro.getText());
+			script = ScriptRunner.createScriptRunner(macro.getText());
 			labelLanguage.setText("Language: " + script.getLanguage());
 			labelArguments.setText("Arguments: " + script.getArguments());
 		}
