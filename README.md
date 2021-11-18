@@ -1,1 +1,1 @@
-# batch-omero-plugin
+# OMERO Batch Plugin

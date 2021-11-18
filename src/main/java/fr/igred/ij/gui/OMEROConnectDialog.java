@@ -10,12 +10,11 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.NumberFormat;
-import java.util.concurrent.ExecutionException;
 
 import static javax.swing.JOptionPane.showMessageDialog;
 
 
-public class ConnectOMERODialog extends JDialog implements ActionListener {
+public class OMEROConnectDialog extends JDialog implements ActionListener {
 
 	private final transient Client client;
 
@@ -28,7 +27,7 @@ public class ConnectOMERODialog extends JDialog implements ActionListener {
 	private boolean cancelled;
 
 
-	public ConnectOMERODialog(Client client) {
+	public OMEROConnectDialog(Client client) {
 		super();
 		this.setModal(true);
 		this.client = client;
@@ -108,7 +107,7 @@ public class ConnectOMERODialog extends JDialog implements ActionListener {
 				Prefs.set("omero.port", port.intValue());
 				Prefs.set("omero.user", username);
 				dispose();
-			} catch (ExecutionException | ServiceException e1) {
+			} catch (ServiceException e1) {
 				String errorValue = e1.getCause().getMessage();
 				String message = e1.getCause().getMessage();
 				if (errorValue.equals("Login credentials not valid")) {

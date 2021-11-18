@@ -1,9 +1,9 @@
 package fr.igred.ij.plugin.frame;
 
-import fr.igred.ij.gui.ConnectOMERODialog;
+import fr.igred.ij.gui.OMEROConnectDialog;
 import fr.igred.ij.gui.ProgressDialog;
 import fr.igred.ij.macro.BatchListener;
-import fr.igred.ij.macro.BatchOMERORunner;
+import fr.igred.ij.macro.OMEROBatchRunner;
 import fr.igred.ij.macro.ScriptRunner;
 import fr.igred.omero.Client;
 import fr.igred.omero.exception.AccessException;
@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 
 import static javax.swing.JOptionPane.showMessageDialog;
 
-public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
+public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	// connection management
 	private final JLabel connectionStatus = new JLabel("Disconnected");
 	private final JButton connect = new JButton("Connect");
@@ -113,8 +113,8 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 	private transient ExperimenterWrapper exp;
 
 
-	public BatchOMEROPlugin() {
-		super("batch-omero-plugin");
+	public OMEROBatchPlugin() {
+		super("OMERO Batch Plugin");
 		this.client = new Client();
 
 		this.addWindowListener(new WindowAdapter() {
@@ -510,7 +510,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 			groupProjects = new ArrayList<>();
 			try {
 				groupProjects = client.getProjects();
-			} catch (ServiceException | AccessException exception) {
+			} catch (ServiceException | ExecutionException | AccessException exception) {
 				IJ.log(exception.getMessage());
 			}
 
@@ -621,7 +621,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 
 	private boolean connect() {
 		boolean connected = false;
-		ConnectOMERODialog connectDialog = new ConnectOMERODialog(client);
+		OMEROConnectDialog connectDialog = new OMEROConnectDialog(client);
 		if (!connectDialog.wasCancelled()) {
 
 			long groupId = client.getCurrentGroupId();
@@ -699,7 +699,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 											5, 5,  //initX, initY
 											10, 10); //xPad, yPad
 			JOptionPane.showMessageDialog(this, panel, "Preview", JOptionPane.INFORMATION_MESSAGE);
-		} catch (ServiceException | AccessException | OMEROServerError | IOException e) {
+		} catch (ServiceException | AccessException | OMEROServerError | ExecutionException | IOException e) {
 			errorWindow(e.getMessage());
 		}
 	}
@@ -707,7 +707,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 
 	public void start(ActionEvent e) {
 		ProgressDialog progress = new ProgressDialog();
-		BatchOMERORunner runner = new BatchOMERORunner(script, client, progress);
+		OMEROBatchRunner runner = new OMEROBatchRunner(script, client, progress);
 		runner.addListener(this);
 
 		// initiation of success variables
