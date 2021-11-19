@@ -219,7 +219,7 @@ public class OMEROBatchRunner extends Thread {
 
 	void runMacro(List<ImageWrapper> images) {
 		//""" Run a macro on images and save the result """
-		String property = "ROI";
+		String property = ROIWrapper.IJ_PROPERTY;
 		ij.WindowManager.closeAllWindows();
 		int index = 0;
 		for (ImageWrapper image : images) {
@@ -256,7 +256,7 @@ public class OMEROBatchRunner extends Thread {
 
 	void runMacroOnLocalImages(List<String> images) throws IOException, FormatException {
 		//""" Run a macro on images from local computer and save the result """
-		String property = "ROI";
+		String property = ROIWrapper.IJ_PROPERTY;
 		WindowManager.closeAllWindows();
 		int index = 0;
 		for (String image : images) {
