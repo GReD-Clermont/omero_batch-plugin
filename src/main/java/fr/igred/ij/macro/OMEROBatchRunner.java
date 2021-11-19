@@ -34,7 +34,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 
-public class BatchOMERORunner extends Thread {
+public class OMEROBatchRunner extends Thread {
 
 	private final ScriptRunner script;
 	private final Client client;
@@ -63,7 +63,7 @@ public class BatchOMERORunner extends Thread {
 	private BatchListener listener;
 
 
-	public BatchOMERORunner(ScriptRunner script, Client client) {
+	public OMEROBatchRunner(ScriptRunner script, Client client) {
 		super();
 		this.script = script;
 		this.client = client;
@@ -71,7 +71,7 @@ public class BatchOMERORunner extends Thread {
 	}
 
 
-	public BatchOMERORunner(ScriptRunner script, Client client, ProgressMonitor progress) {
+	public OMEROBatchRunner(ScriptRunner script, Client client, ProgressMonitor progress) {
 		super();
 		this.script = script;
 		this.client = client;
@@ -242,7 +242,8 @@ public class BatchOMERORunner extends Thread {
 
 			imp.show();
 
-			// Analyse the images.
+			// Analyse the image
+			script.setImage(imp);
 			script.run();
 
 			imp.changes = false; // Prevent "Save Changes?" dialog
@@ -291,7 +292,8 @@ public class BatchOMERORunner extends Thread {
 				// Remove extension from title
 				String title = removeExtension(imp.getTitle());
 
-				// Analyse the images
+				// Analyse the image
+				script.setImage(imp);
 				script.run();
 
 				// Save and Close the various components

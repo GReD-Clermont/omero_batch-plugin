@@ -10,12 +10,12 @@
     </parent>
 
     <groupId>fr.igred</groupId>
-    <artifactId>batch-omero-plugin</artifactId>
+    <artifactId>omero_batch-plugin</artifactId>
     <version>1.0.0</version>
 
-    <name>batch-omero-plugin</name>
+    <name>omero_batch-plugin</name>
     <description>ImageJ plugin to batch process images from OMERO.</description>
-    <url>https://github.com/GReD-Clermont/batch-omero-plugin</url>
+    <url>https://github.com/GReD-Clermont/omero_batch-plugin</url>
     <inceptionYear>2021</inceptionYear>
 
     <organization>
@@ -91,24 +91,24 @@
     </mailingLists>
 
     <scm>
-        <connection>scm:git:git://github.com/GReD-Clermont/batch-omero-plugin</connection>
-        <developerConnection>scm:git:git@github.com:GReD-Clermont/batch-omero-plugin</developerConnection>
+        <connection>scm:git:git://github.com/GReD-Clermont/omero_batch-plugin</connection>
+        <developerConnection>scm:git:git@github.com:GReD-Clermont/omero_batch-plugin</developerConnection>
         <tag>HEAD</tag>
-        <url>https://github.com/GReD-Clermont/batch-omero-plugin</url>
+        <url>https://github.com/GReD-Clermont/omero_batch-plugin</url>
     </scm>
     <issueManagement>
         <system>GitHub Issues</system>
-        <url>https://github.com/GReD-Clermont/batch-omero-plugin/issues</url>
+        <url>https://github.com/GReD-Clermont/omero_batch-plugin/issues</url>
     </issueManagement>
     <ciManagement>
         <system>GitHub Actions</system>
-        <url>https://github.com/GReD-Clermont/batch-omero-plugin/actions</url>
+        <url>https://github.com/GReD-Clermont/omero_batch-plugin/actions</url>
     </ciManagement>
     <distributionManagement>
         <repository>
             <id>github</id>
             <name>GitHub GReD-Clermont Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/GReD-Clermont/batch-omero-plugin</url>
+            <url>https://maven.pkg.github.com/GReD-Clermont/omero_batch-plugin</url>
         </repository>
     </distributionManagement>
 
@@ -119,7 +119,7 @@
         <license.licenseName>gpl_v2</license.licenseName>
         <license.copyrightOwners>MICA &amp; GReD</license.copyrightOwners>
         <allowedDuplicateClasses>com.esotericsoftware.kryo.*,com.esotericsoftware.minlog.*,com.esotericsoftware.reflectasm.*</allowedDuplicateClasses>
-        <soc.version>5.8.2</soc.version>
+        <soc.version>5.8.3</soc.version>
     </properties>
 
     <dependencyManagement>
@@ -138,7 +138,6 @@
         <dependency>
             <groupId>net.imagej</groupId>
             <artifactId>ij</artifactId>
-            <version>1.53c</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -150,7 +149,6 @@
 		<dependency>
 			<groupId>ome</groupId>
 			<artifactId>formats-api</artifactId>
-			<version>6.6.1</version>
 			<scope>provided</scope>
 		</dependency>
         <dependency>

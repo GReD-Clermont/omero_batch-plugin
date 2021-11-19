@@ -68,6 +68,24 @@ public class ScriptRunner2 extends ScriptRunner {
 
 
 	@Override
+	public void setImage(ImagePlus imp) {
+		boolean macro = getLanguage().equals("IJ1 Macro");
+		if (detectedInputs || !macro) {
+			for (ModuleItem<?> input : script.getInfo().inputs()) {
+				if (input.getType().equals(ImagePlus.class)) {
+					String imageArg = input.getName();
+					script.unresolveInput(imageArg);
+					script.setInput(imageArg, IJ.getImage());
+					script.resolveInput(imageArg);
+				}
+			}
+		} else {
+			super.setImage(imp);
+		}
+	}
+
+
+	@Override
 	public String getArguments() {
 		if (inputs == null || inputs.isEmpty()) {
 			return super.getArguments();
@@ -78,13 +96,24 @@ public class ScriptRunner2 extends ScriptRunner {
 
 
 	@Override
+	public void setArguments(String arguments) {
+		super.setArguments(arguments);
+		parseArguments();
+		script.getInfo().clearParameters();
+		script.getInfo().parseParameters();
+		addInputs();
+		script.setInputs(inputs);
+	}
+
+
+	@Override
 	public String getLanguage() {
 		return !language.isEmpty() ? language : super.getLanguage();
 	}
 
 
 	@Override
-	public void inputsDialog() {
+	public void showInputDialog() {
 		if (detectedInputs) {
 			SwingInputHarvester inputHarvester = new SwingInputHarvester();
 			script.getContext().inject(inputHarvester);
@@ -104,12 +133,7 @@ public class ScriptRunner2 extends ScriptRunner {
 				}
 			}
 		} else {
-			super.inputsDialog();
-			parseArguments();
-			script.getInfo().clearParameters();
-			script.getInfo().parseParameters();
-			addInputs();
-			script.setInputs(inputs);
+			super.showInputDialog();
 		}
 	}
 
@@ -119,7 +143,7 @@ public class ScriptRunner2 extends ScriptRunner {
 		boolean macro = getLanguage().equals("IJ1 Macro");
 		if (detectedInputs || !macro) {
 			for (ModuleItem<?> input : script.getInfo().inputs()) {
-				if (input.getType().equals(ImagePlus.class)) {
+				if (input.getType().equals(ImagePlus.class) && script.getInput(input.getName()) == null) {
 					String imageArg = input.getName();
 					script.unresolveInput(imageArg);
 					script.setInput(imageArg, IJ.getImage());

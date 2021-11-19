@@ -4,10 +4,10 @@ package fr.igred.ij.plugin.frame;
 import ij.IJ;
 
 
-public class BatchOMEROPluginTest {
+public class OMEROBatchPluginTest {
 
     public static void main(String[] args) {
-        Class<?> clazz = BatchOMEROPlugin.class;
+        Class<?> clazz = OMEROBatchPlugin.class;
         String name = clazz.getName();
         String url = clazz.getResource("/" +
                                        name.replace('.', '/') +

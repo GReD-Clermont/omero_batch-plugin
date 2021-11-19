@@ -1,9 +1,9 @@
 package fr.igred.ij.plugin.frame;
 
-import fr.igred.ij.gui.ConnectOMERODialog;
+import fr.igred.ij.gui.OMEROConnectDialog;
 import fr.igred.ij.gui.ProgressDialog;
 import fr.igred.ij.macro.BatchListener;
-import fr.igred.ij.macro.BatchOMERORunner;
+import fr.igred.ij.macro.OMEROBatchRunner;
 import fr.igred.ij.macro.ScriptRunner;
 import fr.igred.omero.Client;
 import fr.igred.omero.exception.AccessException;
@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 
 import static javax.swing.JOptionPane.showMessageDialog;
 
-public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
+public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	// connection management
 	private final JLabel connectionStatus = new JLabel("Disconnected");
 	private final JButton connect = new JButton("Connect");
@@ -113,8 +113,8 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 	private transient ExperimenterWrapper exp;
 
 
-	public BatchOMEROPlugin() {
-		super("batch-omero-plugin");
+	public OMEROBatchPlugin() {
+		super("OMERO Batch Plugin");
 		this.client = new Client();
 
 		this.addWindowListener(new WindowAdapter() {
@@ -135,6 +135,13 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 		this.setLocationRelativeTo(null);
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 
+		JPanel panelWarning = new JPanel();
+		JLabel warning = new JLabel("Warning: all windows will be closed.");
+		warning.setForeground(new Color(250, 140, 0));
+		warning.setFont(new Font("Arial", Font.ITALIC + Font.BOLD, 12));
+		panelWarning.add(warning);
+		this.add(panelWarning);
+
 		JPanel connection = new JPanel();
 		JLabel labelConnection = new JLabel("Connection status: ");
 		labelConnection.setLabelFor(connectionStatus);
@@ -151,7 +158,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 		this.add(connection);
 
 		JPanel source = new JPanel();
-		JLabel labelEnterType = new JLabel("Where to get images to analyse :");
+		JLabel labelEnterType = new JLabel("Where to get images to analyse:");
 		ButtonGroup inputData = new ButtonGroup();
 		inputData.add(omero);
 		inputData.add(local);
@@ -268,7 +275,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 		panelMacro.setBorder(BorderFactory.createTitledBorder("Macro"));
 		this.add(panelMacro);
 
-		JLabel labelExtension = new JLabel("Suffix of output files :");
+		JLabel labelExtension = new JLabel("Suffix of output files:");
 		labelExtension.setLabelFor(suffix);
 		suffix.setText("_macro");
 		output1.add(labelExtension);
@@ -276,7 +283,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 		output1.setVisible(false);
 
 		JPanel output2 = new JPanel();
-		JLabel labelRecordOption = new JLabel("Where to save results :");
+		JLabel labelRecordOption = new JLabel("Where to save results:");
 		output2.add(labelRecordOption);
 		output2.add(onlineOutput);
 		output2.add(localOutput);
@@ -503,7 +510,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 			groupProjects = new ArrayList<>();
 			try {
 				groupProjects = client.getProjects();
-			} catch (ServiceException | AccessException exception) {
+			} catch (ServiceException | ExecutionException | AccessException exception) {
 				IJ.log(exception.getMessage());
 			}
 
@@ -588,7 +595,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 				warningWindow(String.format("Macro:%nThe file doesn't exist"));
 			}
 		}
-		if(!macro.getText().isEmpty()) {
+		if (!macro.getText().isEmpty()) {
 			script = ScriptRunner.createScriptRunner(macro.getText());
 			labelLanguage.setText("Language: " + script.getLanguage());
 			labelArguments.setText("Arguments: " + script.getArguments());
@@ -597,9 +604,9 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 
 
 	private void setArguments() {
-		if(script != null) {
-			script.inputsDialog();
-			labelLanguage.setText("Language: "+ script.getLanguage());
+		if (script != null) {
+			script.showInputDialog();
+			labelLanguage.setText("Language: " + script.getLanguage());
 			labelArguments.setText("Arguments: " + script.getArguments());
 		}
 	}
@@ -614,7 +621,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 
 	private boolean connect() {
 		boolean connected = false;
-		ConnectOMERODialog connectDialog = new ConnectOMERODialog(client);
+		OMEROConnectDialog connectDialog = new OMEROConnectDialog(client);
 		if (!connectDialog.wasCancelled()) {
 
 			long groupId = client.getCurrentGroupId();
@@ -692,7 +699,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 											5, 5,  //initX, initY
 											10, 10); //xPad, yPad
 			JOptionPane.showMessageDialog(this, panel, "Preview", JOptionPane.INFORMATION_MESSAGE);
-		} catch (ServiceException | AccessException | OMEROServerError | IOException e) {
+		} catch (ServiceException | AccessException | OMEROServerError | ExecutionException | IOException e) {
 			errorWindow(e.getMessage());
 		}
 	}
@@ -700,7 +707,7 @@ public class BatchOMEROPlugin extends PlugInFrame implements BatchListener {
 
 	public void start(ActionEvent e) {
 		ProgressDialog progress = new ProgressDialog();
-		BatchOMERORunner runner = new BatchOMERORunner(script, client, progress);
+		OMEROBatchRunner runner = new OMEROBatchRunner(script, client, progress);
 		runner.addListener(this);
 
 		// initiation of success variables
