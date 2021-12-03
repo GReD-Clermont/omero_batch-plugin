@@ -164,7 +164,9 @@ public class OMEROBatchRunner extends Thread {
 		try {
 			List<ROIWrapper> rois = image.getROIs(client);
 			for (ROIWrapper roi : rois) {
-				client.delete(roi);
+				if(roi.getOwner().getId() == client.getId()) {
+					client.delete(roi);
+				}
 			}
 		} catch (ExecutionException | OMEROServerError | ServiceException | AccessException exception) {
 			IJ.log(exception.getMessage());
@@ -382,9 +384,9 @@ public class OMEROBatchRunner extends Thread {
 			}
 		}
 
-		saveROIs(outputImage, omeroOutputId, title, property);
-		saveResults(outputImage, omeroOutputId, title, property);
-		saveLog(omeroOutputId, title);
+		if (saveROIs) saveROIs(outputImage, omeroOutputId, title, property);
+		if (saveResults) saveResults(outputImage, omeroOutputId, title, property);
+		if (saveLog) saveLog(omeroOutputId, title);
 
 		for (int id : imageIds) {
 			WindowManager.getImage(id).close();
@@ -412,13 +414,12 @@ public class OMEROBatchRunner extends Thread {
 
 
 	private void saveROIs(ImagePlus imp, Long imageId, String title, String property) {
-		// save of ROIs
-		if (saveROIs && outputOnLocal) {  //  local save
+		if (outputOnLocal) {  //  local save
 			setState("Saving ROIs...");
 			rm.runCommand("Deselect"); // deselect ROIs to save them all
 			rm.runCommand("Save", directoryOut + File.separator + title + "_" + todayDate() + "_RoiSet.zip");
 		}
-		if (saveROIs && outputOnOMERO && imageId != null) { // save on Omero
+		if (outputOnOMERO && imageId != null) { // save on Omero
 			setState("Saving ROIs on OMERO...");
 			List<ROIWrapper> rois = getRoisFromIJ(imp, property);
 			try {
@@ -439,47 +440,43 @@ public class OMEROBatchRunner extends Thread {
 
 
 	private void saveResults(ImagePlus imp, Long imageId, String title, String property) {
-		if (saveResults) {
-			String resultsName = null;
-			List<Roi> ijRois = getIJRois(imp);
-			setState("Saving results files...");
-			ResultsTable rt = ResultsTable.getResultsTable();
-			if (rt != null) {
-				resultsName = rt.getTitle();
-				String path = directoryOut + File.separator + resultsName + "_" + title + "_" + todayDate() + ".csv";
-				rt.save(path);
-				if (outputOnOMERO) {
-					appendTable(rt, imageId, ijRois, property);
-					uploadFile(imageId, path);
-				}
-				rt.reset();
+		String resultsName = null;
+		List<Roi> ijRois = getIJRois(imp);
+		setState("Saving results files...");
+		ResultsTable rt = ResultsTable.getResultsTable();
+		if (rt != null && rt.getHeadings().length > 0) {
+			resultsName = rt.getTitle();
+			String path = directoryOut + File.separator + resultsName + "_" + title + "_" + todayDate() + ".csv";
+			rt.save(path);
+			if (outputOnOMERO) {
+				appendTable(rt, imageId, ijRois, property);
+				uploadFile(imageId, path);
 			}
-			String[] candidates = WindowManager.getNonImageTitles();
-			for (String candidate : candidates) {
-				rt = ResultsTable.getResultsTable(candidate);
+			rt.reset();
+		}
+		String[] candidates = WindowManager.getNonImageTitles();
+		for (String candidate : candidates) {
+			rt = ResultsTable.getResultsTable(candidate);
 
-				// Skip if rt is null or if results already processed
-				if (rt == null || rt.getTitle().equals(resultsName)) continue;
+			// Skip if rt is null or if results already processed
+			if (rt == null || rt.getTitle().equals(resultsName)) continue;
 
-				String path = directoryOut + File.separator + candidate + "_" + title + "_" + todayDate() + ".csv";
-				rt.save(path);
-				if (outputOnOMERO) {
-					appendTable(rt, imageId, ijRois, property);
-					uploadFile(imageId, path);
-				}
-				rt.reset();
+			String path = directoryOut + File.separator + candidate + "_" + title + "_" + todayDate() + ".csv";
+			rt.save(path);
+			if (outputOnOMERO) {
+				appendTable(rt, imageId, ijRois, property);
+				uploadFile(imageId, path);
 			}
+			rt.reset();
 		}
 	}
 
 
 	private void saveLog(Long imageId, String title) {
-		if (saveLog) {
-			String path = directoryOut + File.separator + title + "_log.txt";
-			IJ.selectWindow("Log");
-			IJ.saveAs("txt", path);
-			if (outputOnOMERO) uploadFile(imageId, path);
-		}
+		String path = directoryOut + File.separator + title + "_log.txt";
+		IJ.selectWindow("Log");
+		IJ.saveAs("txt", path);
+		if (outputOnOMERO) uploadFile(imageId, path);
 	}
 
 

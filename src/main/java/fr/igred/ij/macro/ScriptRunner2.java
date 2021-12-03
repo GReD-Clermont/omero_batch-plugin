@@ -69,7 +69,8 @@ public class ScriptRunner2 extends ScriptRunner {
 
 	@Override
 	public void setImage(ImagePlus imp) {
-		boolean macro = getLanguage().equals("IJ1 Macro");
+		boolean macro = getLanguage().equals("IJ1 Macro")
+						|| getLanguage().equals(".ijm");
 		if (detectedInputs || !macro) {
 			for (ModuleItem<?> input : script.getInfo().inputs()) {
 				if (input.getType().equals(ImagePlus.class)) {
@@ -140,7 +141,8 @@ public class ScriptRunner2 extends ScriptRunner {
 
 	@Override
 	public void run() {
-		boolean macro = getLanguage().equals("IJ1 Macro");
+		boolean macro = getLanguage().equals("IJ1 Macro")
+						|| getLanguage().equals(".ijm");
 		if (detectedInputs || !macro) {
 			for (ModuleItem<?> input : script.getInfo().inputs()) {
 				if (input.getType().equals(ImagePlus.class) && script.getInput(input.getName()) == null) {
