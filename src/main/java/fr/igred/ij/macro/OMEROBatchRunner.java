@@ -379,7 +379,7 @@ public class OMEROBatchRunner extends Thread {
 				WindowManager.setTempCurrentImage(imp);
 				outputIds.addAll(saveImage(title));
 			}
-			if (!outputIds.isEmpty()) {
+			if (!outputIds.isEmpty() && ijOutputId != ijInputId) {
 				omeroOutputId = outputIds.get(0);
 			}
 		}
