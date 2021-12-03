@@ -6,6 +6,7 @@ import fr.igred.ij.macro.BatchListener;
 import fr.igred.ij.macro.OMEROBatchRunner;
 import fr.igred.ij.macro.ScriptRunner;
 import fr.igred.omero.Client;
+import fr.igred.omero.GenericObjectWrapper;
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.exception.ServiceException;
@@ -29,16 +30,18 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static javax.swing.JOptionPane.showMessageDialog;
 
 public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 
-	private static final String FORMAT = "%s (id=%d)";
+	private static final String FORMAT = "%%-%ds (ID:%%%dd)";
 
 	// connection management
 	private final JLabel connectionStatus = new JLabel("Disconnected");
@@ -125,6 +128,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		});
 
 		Font nameFont = new Font("Arial", Font.ITALIC, 10);
+		Font listFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
 
 		final String projectName = "Project Name: ";
 		final String datasetName = "Dataset Name: ";
@@ -180,6 +184,8 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		input1a.add(userList);
 		groupList.addItemListener(this::updateGroup);
 		userList.addItemListener(this::updateUser);
+		groupList.setFont(listFont);
+		userList.setFont(listFont);
 
 		JLabel labelProjectIn = new JLabel(projectName);
 		JLabel labelDatasetIn = new JLabel(datasetName);
@@ -196,6 +202,8 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		projectListIn.addItemListener(this::updateInputProject);
 		datasetListIn.addItemListener(this::updateInputDataset);
 		preview.addActionListener(e -> previewDataset());
+		projectListIn.setFont(listFont);
+		datasetListIn.setFont(listFont);
 
 		input1c.add(checkLoadROIs);
 		input1c.add(checkDelROIs);
@@ -297,6 +305,8 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		datasetListOut.addItemListener(this::updateOutputDataset);
 		newDatasetBtn.addActionListener(this::createNewDataset);
 		output3a.setVisible(false);
+		projectListOut.setFont(listFont);
+		datasetListOut.setFont(listFont);
 
 		JLabel outputFolderLabel = new JLabel("Output folder: ");
 		JButton directoryBtn = new JButton(browse);
@@ -326,8 +336,19 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
-	private static String format(String name, long id) {
-		return String.format(FORMAT, name, id);
+	private static String format(String name, long id, int padName, int padId) {
+		String format = String.format(FORMAT, padName, padId);
+		return String.format(format, name, id);
+	}
+
+
+	private static <T extends GenericObjectWrapper<?>>
+	int getListPadding(Collection<T> objects, Function<? super T, ? extends Number> mapper) {
+		return objects.stream()
+					  .map(mapper)
+					  .mapToInt(Number::intValue)
+					  .max()
+					  .orElse(0);
 	}
 
 
@@ -376,8 +397,10 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				this.datasets.sort(Comparator.comparing(DatasetWrapper::getName,
 														String.CASE_INSENSITIVE_ORDER));
 				datasetListIn.removeAllItems();
+				int padName = getListPadding(datasets, d -> d.getName().length());
+				int padId = getListPadding(datasets, g -> (int) (Math.log10(g.getId()))) + 1;
 				for (DatasetWrapper d : this.datasets) {
-					datasetListIn.addItem(format(d.getName(), d.getId()));
+					datasetListIn.addItem(format(d.getName(), d.getId(), padName, padId));
 				}
 				if (!this.datasets.isEmpty()) datasetListIn.setSelectedIndex(0);
 			}
@@ -400,8 +423,10 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				this.myDatasets.sort(Comparator.comparing(DatasetWrapper::getName,
 														  String.CASE_INSENSITIVE_ORDER));
 				datasetListOut.removeAllItems();
+				int padName = getListPadding(myDatasets, d -> d.getName().length());
+				int padId = getListPadding(myDatasets, g -> (int) (Math.log10(g.getId()))) + 1;
 				for (DatasetWrapper d : this.myDatasets) {
-					datasetListOut.addItem(format(d.getName(), d.getId()));
+					datasetListOut.addItem(format(d.getName(), d.getId(), padName, padId));
 				}
 				if (!this.datasets.isEmpty()) datasetListOut.setSelectedIndex(0);
 			}
@@ -461,11 +486,15 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			projectListOut.removeAllItems();
 			datasetListIn.removeAllItems();
 			datasetListOut.removeAllItems();
+			int padName = getListPadding(userProjects, p -> p.getName().length());
+			int padId = getListPadding(userProjects, g -> (int) (Math.log10(g.getId()))) + 1;
 			for (ProjectWrapper project : userProjects) {
-				projectListIn.addItem(format(project.getName(), project.getId()));
+				projectListIn.addItem(format(project.getName(), project.getId(), padName, padId));
 			}
+			int padMyName = getListPadding(myProjects, p -> p.getName().length());
+			int padMyId = getListPadding(myProjects, g -> (int) (Math.log10(g.getId()))) + 1;
 			for (ProjectWrapper project : myProjects) {
-				projectListOut.addItem(format(project.getName(), project.getId()));
+				projectListOut.addItem(format(project.getName(), project.getId(), padMyName, padMyId));
 			}
 			if (!userProjects.isEmpty()) projectListIn.setSelectedIndex(0);
 			if (!myProjects.isEmpty()) projectListOut.setSelectedIndex(0);
@@ -497,9 +526,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			userList.removeAllItems();
 
 			userList.addItem("All members");
+			int padName = getListPadding(users, u -> u.getUserName().length());
+			int padId = getListPadding(users, g -> (int) (Math.log10(g.getId()))) + 1;
 			int selected = 0;
 			for (ExperimenterWrapper user : users) {
-				userList.addItem(format(user.getUserName(), user.getId()));
+				userList.addItem(format(user.getUserName(), user.getId(), padName, padId));
 				if (user.getId() == exp.getId()) {
 					selected = users.indexOf(user) + 1;
 				}
@@ -607,8 +638,10 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			groups = exp.getGroups();
 			groups.removeIf(g -> g.getId() <= 2);
 
+			int padName = getListPadding(groups, g -> g.getName().length());
+			int padId = getListPadding(groups, g -> (int) (Math.log10(g.getId()))) + 1;
 			for (GroupWrapper group : groups) {
-				groupList.addItem(format(group.getName(), group.getId()));
+				groupList.addItem(format(group.getName(), group.getId(), padName, padId));
 			}
 
 			connectionStatus.setText("Connected");
