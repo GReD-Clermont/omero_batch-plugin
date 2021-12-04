@@ -347,10 +347,40 @@ public class OMEROBatchRunner extends Thread {
 		ImagePlus imp = null;
 		try {
 			imp = image.toImagePlus(client);
+			imp.setProp("Annotable", String.valueOf(image.canAnnotate()));
 		} catch (ExecutionException | ServiceException | AccessException e) {
 			IJ.error("Could not load image: " + e.getMessage());
 		}
 		return imp;
+	}
+
+
+	private List<ImagePlus> getOutputImages(ImagePlus imageInput) {
+		boolean annotable = Boolean.parseBoolean(imageInput.getProp("Annotable"));
+		int ijInputId = imageInput.getID();
+
+		ImagePlus outputImage = WindowManager.getCurrentImage();
+		if (outputImage == null) {
+			outputImage = imageInput;
+		}
+		int ijOutputId = outputImage.getID();
+
+		int[] imageIds = WindowManager.getIDList();
+		if (imageIds == null) {
+			imageIds = new int[0];
+		}
+		List<Integer> idList = Arrays.stream(imageIds).boxed().collect(Collectors.toList());
+		idList.removeIf(i -> i.equals(ijOutputId));
+		idList.add(0, ijOutputId);
+		// If input image is expected as output for ROIs on OMERO but is not annotable, import it.
+		if (!outputOnOMERO || !saveROIs || annotable || ijInputId != ijOutputId) {
+			idList.removeIf(i -> i.equals(ijInputId));
+		}
+		List<ImagePlus> outputs = idList.stream()
+										.map(WindowManager::getImage)
+										.collect(Collectors.toList());
+		if (outputs.isEmpty()) IJ.log("Warning: there is no new image.");
+		return outputs;
 	}
 
 
@@ -382,38 +412,20 @@ public class OMEROBatchRunner extends Thread {
 	}
 
 
-	private void save(ImagePlus imageInput, Long omeroInputId, String property) {
-		// Define paths
-		String inputTitle = removeExtension(imageInput.getTitle());
-
-		int ijInputId = imageInput.getID();
+	private void save(ImagePlus inputImage, Long omeroInputId, String property) {
+		String inputTitle = removeExtension(inputImage.getTitle());
 		Long omeroOutputId = omeroInputId;
-
-		ImagePlus outputImage = WindowManager.getCurrentImage();
-		if (outputImage == null) {
-			outputImage = imageInput;
-		}
-		int ijOutputId = outputImage.getID();
-
-		int[] imageIds = WindowManager.getIDList();
-		if (imageIds == null) {
-			imageIds = new int[0];
-		}
-		List<Integer> idList = Arrays.stream(imageIds).boxed().collect(Collectors.toList());
-		idList.removeIf(i -> i.equals(ijOutputId));
-		idList.add(0, ijOutputId);
-		idList.removeIf(i -> i.equals(ijInputId));
+		List<ImagePlus> outputs = getOutputImages(inputImage);
+		ImagePlus outputImage = inputImage;
+		if (!outputs.isEmpty()) outputImage = outputs.get(0);
 
 		if (saveImage) {
 			List<Long> outputIds = new ArrayList<>();
-			if (idList.isEmpty()) IJ.error("Invalid choice: there is no new image.");
-			for (Integer id : idList) {
-				ImagePlus imp = WindowManager.getImage(id);
-				WindowManager.setTempCurrentImage(imp);
+			for (ImagePlus imp : outputs) {
 				List<Long> ids = saveImage(imp, property);
 				outputIds.addAll(ids);
 			}
-			if (!outputIds.isEmpty() && ijOutputId != ijInputId) {
+			if (!outputIds.isEmpty()) {
 				omeroOutputId = outputIds.get(0);
 			}
 		}
@@ -422,8 +434,9 @@ public class OMEROBatchRunner extends Thread {
 		if (saveResults) saveResults(outputImage, omeroOutputId, inputTitle, property);
 		if (saveLog) saveLog(omeroOutputId, inputTitle);
 
-		for (int id : imageIds) {
-			WindowManager.getImage(id).close();
+		for (ImagePlus imp : outputs) {
+			imp.changes = false;
+			imp.close();
 		}
 	}
 
@@ -432,7 +445,7 @@ public class OMEROBatchRunner extends Thread {
 		List<Long> ids = new ArrayList<>();
 		String title = removeExtension(image.getTitle());
 		String path = directoryOut + File.separator + title + suffix + ".tif";
-		IJ.saveAs("TIFF", path);
+		IJ.saveAsTiff(image, path);
 		if (outputOnOMERO) {
 			try {
 				setState("Import on OMERO...");
