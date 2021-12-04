@@ -15,6 +15,7 @@ import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.Overlay;
 import ij.gui.Roi;
+import ij.io.RoiEncoder;
 import ij.measure.ResultsTable;
 import ij.plugin.frame.RoiManager;
 import ij.text.TextWindow;
@@ -23,12 +24,17 @@ import loci.plugins.BF;
 import loci.plugins.in.ImportProcess;
 import loci.plugins.in.ImporterOptions;
 
-import java.awt.Frame;
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -164,7 +170,7 @@ public class OMEROBatchRunner extends Thread {
 		try {
 			List<ROIWrapper> rois = image.getROIs(client);
 			for (ROIWrapper roi : rois) {
-				if(roi.getOwner().getId() == client.getId()) {
+				if (roi.getOwner().getId() == client.getId()) {
 					client.delete(roi);
 				}
 			}
@@ -191,22 +197,39 @@ public class OMEROBatchRunner extends Thread {
 	}
 
 
-	private List<Roi> getIJRois(ImagePlus imp) {
-		List<Roi> ijRois = new ArrayList<>();
+	private List<Roi> getOverlay(ImagePlus imp) {
+		List<Roi> ijRois = new ArrayList<>(0);
 		Overlay overlay = imp.getOverlay();
 		if (overlay != null) {
-			ijRois.addAll(Arrays.asList(overlay.toArray()));
+			ijRois = Arrays.asList(overlay.toArray());
 		}
-		ijRois.addAll(Arrays.asList(rm.getRoisAsArray()));
 		for (Roi roi : ijRois) roi.setImage(imp);
 		return ijRois;
 	}
 
 
-	private List<ROIWrapper> getRoisFromIJ(ImagePlus imp, String property) {
-		List<ROIWrapper> rois = new ArrayList<>();
+	private List<Roi> getManagedRois(ImagePlus imp) {
+		List<Roi> ijRois = Arrays.asList(rm.getRoisAsArray());
+		for (Roi roi : ijRois) roi.setImage(imp);
+		return ijRois;
+	}
+
+
+	private List<ROIWrapper> getROIsFromOverlay(ImagePlus imp, String property) {
+		List<ROIWrapper> rois = new ArrayList<>(0);
 		if (imp != null) {
-			List<Roi> ijRois = getIJRois(imp);
+			List<Roi> ijRois = getOverlay(imp);
+			rois = ROIWrapper.fromImageJ(ijRois, property);
+		}
+
+		return rois;
+	}
+
+
+	private List<ROIWrapper> getROIsFromManager(ImagePlus imp, String property) {
+		List<ROIWrapper> rois = new ArrayList<>(0);
+		if (imp != null) {
+			List<Roi> ijRois = getManagedRois(imp);
 			rois = ROIWrapper.fromImageJ(ijRois, property);
 		}
 
@@ -237,10 +260,7 @@ public class OMEROBatchRunner extends Thread {
 			initRoiManager();
 
 			// Load ROIs
-			if (loadROIs) loadROIs(image, imp);
-
-			// Define paths
-			String title = removeExtension(imp.getTitle());
+			if (loadROIs) loadROIs(image, imp, false);
 
 			imp.show();
 
@@ -249,7 +269,7 @@ public class OMEROBatchRunner extends Thread {
 			script.run();
 
 			imp.changes = false; // Prevent "Save Changes?" dialog
-			save(imp, inputImageId, title, property);
+			save(imp, inputImageId, property);
 			closeWindows();
 			index++;
 		}
@@ -291,16 +311,13 @@ public class OMEROBatchRunner extends Thread {
 				// Initialize ROI Manager
 				initRoiManager();
 
-				// Remove extension from title
-				String title = removeExtension(imp.getTitle());
-
 				// Analyse the image
 				script.setImage(imp);
 				script.run();
 
 				// Save and Close the various components
 				imp.changes = false; // Prevent "Save Changes?" dialog
-				save(imp, null, title, property);
+				save(imp, null, property);
 				closeWindows();
 				options.setSeriesOn(i, false);
 			}
@@ -337,22 +354,38 @@ public class OMEROBatchRunner extends Thread {
 	}
 
 
-	private void loadROIs(ImageWrapper image, ImagePlus imp) {
-		rm.reset(); // Reset ROI manager to clear previous ROIs
-		List<Roi> ijRois = new ArrayList<>();
+	private void loadROIs(ImageWrapper image, ImagePlus imp, boolean toOverlay) {
+		List<Roi> ijRois = new ArrayList<>(0);
 		try {
 			ijRois = ROIWrapper.toImageJ(image.getROIs(client));
 		} catch (ExecutionException | ServiceException | AccessException e) {
-			IJ.error("Could not import ROIs: " + e.getMessage());
+			IJ.error("Could not load ROIs: " + e.getMessage());
 		}
-		for (Roi ijRoi : ijRois) {
-			ijRoi.setImage(imp);
-			rm.addRoi(ijRoi);
+		if (toOverlay) {
+			Overlay overlay = imp.getOverlay();
+			if (overlay != null) {
+				overlay.clear();
+			} else {
+				overlay = new Overlay();
+			}
+			for (Roi ijRoi : ijRois) {
+				ijRoi.setImage(imp);
+				overlay.add(ijRoi, ijRoi.getName());
+			}
+		} else {
+			rm.reset(); // Reset ROI manager to clear previous ROIs
+			for (Roi ijRoi : ijRois) {
+				ijRoi.setImage(imp);
+				rm.addRoi(ijRoi);
+			}
 		}
 	}
 
 
-	private void save(ImagePlus imageInput, Long omeroInputId, String title, String property) {
+	private void save(ImagePlus imageInput, Long omeroInputId, String property) {
+		// Define paths
+		String inputTitle = removeExtension(imageInput.getTitle());
+
 		int ijInputId = imageInput.getID();
 		Long omeroOutputId = omeroInputId;
 
@@ -377,16 +410,17 @@ public class OMEROBatchRunner extends Thread {
 			for (Integer id : idList) {
 				ImagePlus imp = WindowManager.getImage(id);
 				WindowManager.setTempCurrentImage(imp);
-				outputIds.addAll(saveImage(title));
+				List<Long> ids = saveImage(imp, property);
+				outputIds.addAll(ids);
 			}
 			if (!outputIds.isEmpty() && ijOutputId != ijInputId) {
 				omeroOutputId = outputIds.get(0);
 			}
 		}
 
-		if (saveROIs) saveROIs(outputImage, omeroOutputId, title, property);
-		if (saveResults) saveResults(outputImage, omeroOutputId, title, property);
-		if (saveLog) saveLog(omeroOutputId, title);
+		if (saveROIs) saveROIManager(outputImage, omeroOutputId, inputTitle, property);
+		if (saveResults) saveResults(outputImage, omeroOutputId, inputTitle, property);
+		if (saveLog) saveLog(omeroOutputId, inputTitle);
 
 		for (int id : imageIds) {
 			WindowManager.getImage(id).close();
@@ -394,44 +428,84 @@ public class OMEROBatchRunner extends Thread {
 	}
 
 
-	private List<Long> saveImage(String title) {
+	private List<Long> saveImage(ImagePlus image, String property) {
 		List<Long> ids = new ArrayList<>();
-		if (saveImage) {
-			String path = directoryOut + File.separator + title + suffix + ".tif";
-			IJ.saveAs("TIFF", path);
-			if (outputOnOMERO) {
-				try {
-					setState("Import on OMERO...");
-					DatasetWrapper dataset = client.getDataset(outputDatasetId);
-					ids = dataset.importImage(client, path);
-				} catch (Exception e) {
-					IJ.error("Could not import image: " + e.getMessage());
+		String title = removeExtension(image.getTitle());
+		String path = directoryOut + File.separator + title + suffix + ".tif";
+		IJ.saveAs("TIFF", path);
+		if (outputOnOMERO) {
+			try {
+				setState("Import on OMERO...");
+				DatasetWrapper dataset = client.getDataset(outputDatasetId);
+				ids = dataset.importImage(client, path);
+				if (saveROIs && !ids.isEmpty()) {
+					saveOverlay(image, ids.get(0), title, property);
 				}
+			} catch (Exception e) {
+				IJ.error("Could not import image: " + e.getMessage());
 			}
 		}
 		return ids;
 	}
 
 
-	private void saveROIs(ImagePlus imp, Long imageId, String title, String property) {
+	private void saveOverlay(ImagePlus imp, Long imageId, String title, String property) {
 		if (outputOnLocal) {  //  local save
-			setState("Saving ROIs...");
-			rm.runCommand("Deselect"); // deselect ROIs to save them all
-			rm.runCommand("Save", directoryOut + File.separator + title + "_" + todayDate() + "_RoiSet.zip");
+			setState("Saving overlay ROIs...");
+			String path = directoryOut + File.separator + title + "_" + todayDate() + "_RoiSet.zip";
+			List<Roi> ijRois = getOverlay(imp);
+			RoiEncoder encoder = new RoiEncoder(path);
+			try {
+				for (Roi roi : ijRois) encoder.write(roi);
+			} catch (IOException e) {
+				IJ.error("Could not save Roi to file: " + e.getMessage());
+			}
 		}
 		if (outputOnOMERO && imageId != null) { // save on Omero
-			setState("Saving ROIs on OMERO...");
-			List<ROIWrapper> rois = getRoisFromIJ(imp, property);
+			List<ROIWrapper> rois = getROIsFromOverlay(imp, property);
 			try {
 				ImageWrapper image = client.getImage(imageId);
 				if (clearROIs) {
 					deleteROIs(image);
 				}
+				setState("Saving overlay ROIs on OMERO...");
 				for (ROIWrapper roi : rois) {
 					roi.setImage(image);
 					image.saveROI(client, roi);
 				}
-				loadROIs(image, imp); // reload ROIs
+				loadROIs(image, imp, true); // reload ROIs
+			} catch (ServiceException | AccessException | ExecutionException e) {
+				IJ.error("Could not import overlay ROIs to OMERO: " + e.getMessage());
+			}
+		}
+	}
+
+
+	private void saveROIManager(ImagePlus imp, Long imageId, String title, String property) {
+		if (outputOnLocal) {  //  local save
+			setState("Saving ROIs...");
+			String path = directoryOut + File.separator + title + "_" + todayDate() + "_RoiSet.zip";
+			List<Roi> ijRois = getManagedRois(imp);
+			RoiEncoder encoder = new RoiEncoder(path);
+			try {
+				for (Roi roi : ijRois) encoder.write(roi);
+			} catch (IOException e) {
+				IJ.error("Could not save Roi to file: " + e.getMessage());
+			}
+		}
+		if (outputOnOMERO && imageId != null) { // save on Omero
+			List<ROIWrapper> rois = getROIsFromManager(imp, property);
+			try {
+				ImageWrapper image = client.getImage(imageId);
+				if (clearROIs) {
+					deleteROIs(image);
+				}
+				setState("Saving ROIs on OMERO...");
+				for (ROIWrapper roi : rois) {
+					roi.setImage(image);
+					image.saveROI(client, roi);
+				}
+				loadROIs(image, imp, false); // reload ROIs
 			} catch (ServiceException | AccessException | ExecutionException e) {
 				IJ.error("Could not import ROIs to OMERO: " + e.getMessage());
 			}
@@ -441,7 +515,8 @@ public class OMEROBatchRunner extends Thread {
 
 	private void saveResults(ImagePlus imp, Long imageId, String title, String property) {
 		String resultsName = null;
-		List<Roi> ijRois = getIJRois(imp);
+		List<Roi> ijRois = getOverlay(imp);
+		ijRois.addAll(getManagedRois(imp));
 		setState("Saving results files...");
 		ResultsTable rt = ResultsTable.getResultsTable();
 		if (rt != null && rt.getHeadings().length > 0) {
