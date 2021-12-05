@@ -25,7 +25,10 @@ import loci.plugins.in.ImportProcess;
 import loci.plugins.in.ImporterOptions;
 
 import java.awt.*;
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
@@ -38,6 +41,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 
 public class OMEROBatchRunner extends Thread {
@@ -347,6 +352,7 @@ public class OMEROBatchRunner extends Thread {
 		ImagePlus imp = null;
 		try {
 			imp = image.toImagePlus(client);
+			// Store image "annotate" permissions as a property in the ImagePlus object
 			imp.setProp("Annotable", String.valueOf(image.canAnnotate()));
 		} catch (ExecutionException | ServiceException | AccessException e) {
 			IJ.error("Could not load image: " + e.getMessage());
@@ -355,13 +361,10 @@ public class OMEROBatchRunner extends Thread {
 	}
 
 
-	private List<ImagePlus> getOutputImages(ImagePlus imageInput) {
-		boolean annotable = Boolean.parseBoolean(imageInput.getProp("Annotable"));
-		int ijInputId = imageInput.getID();
-
+	private List<ImagePlus> getOutputImages(ImagePlus inputImage) {
 		ImagePlus outputImage = WindowManager.getCurrentImage();
 		if (outputImage == null) {
-			outputImage = imageInput;
+			outputImage = inputImage;
 		}
 		int ijOutputId = outputImage.getID();
 
@@ -372,10 +375,6 @@ public class OMEROBatchRunner extends Thread {
 		List<Integer> idList = Arrays.stream(imageIds).boxed().collect(Collectors.toList());
 		idList.removeIf(i -> i.equals(ijOutputId));
 		idList.add(0, ijOutputId);
-		// If input image is expected as output for ROIs on OMERO but is not annotable, import it.
-		if (!outputOnOMERO || !saveROIs || annotable || ijInputId != ijOutputId) {
-			idList.removeIf(i -> i.equals(ijInputId));
-		}
 		List<ImagePlus> outputs = idList.stream()
 										.map(WindowManager::getImage)
 										.collect(Collectors.toList());
@@ -414,10 +413,19 @@ public class OMEROBatchRunner extends Thread {
 
 	private void save(ImagePlus inputImage, Long omeroInputId, String property) {
 		String inputTitle = removeExtension(inputImage.getTitle());
+
 		Long omeroOutputId = omeroInputId;
 		List<ImagePlus> outputs = getOutputImages(inputImage);
+
 		ImagePlus outputImage = inputImage;
 		if (!outputs.isEmpty()) outputImage = outputs.get(0);
+
+		// If input image is expected as output for ROIs on OMERO but is not annotable, import it.
+		boolean annotable = Boolean.parseBoolean(inputImage.getProp("Annotable"));
+		boolean outputIsNotInput = !inputImage.equals(outputImage);
+		if (!outputOnOMERO || !saveROIs || annotable || outputIsNotInput) {
+			outputs.removeIf(i -> i.equals(inputImage));
+		}
 
 		if (saveImage) {
 			List<Long> outputIds = new ArrayList<>();
@@ -425,12 +433,15 @@ public class OMEROBatchRunner extends Thread {
 				List<Long> ids = saveImage(imp, property);
 				outputIds.addAll(ids);
 			}
-			if (!outputIds.isEmpty()) {
+			if (!outputIds.isEmpty() && outputIsNotInput) {
 				omeroOutputId = outputIds.get(0);
 			}
 		}
 
-		if (saveROIs) saveROIManager(outputImage, omeroOutputId, inputTitle, property);
+		if (saveROIs) {
+			if (!saveImage) saveOverlay(outputImage, omeroOutputId, inputTitle, property);
+			saveROIManager(outputImage, omeroOutputId, inputTitle, property);
+		}
 		if (saveResults) saveResults(outputImage, omeroOutputId, inputTitle, property);
 		if (saveLog) saveLog(omeroOutputId, inputTitle);
 
@@ -462,17 +473,30 @@ public class OMEROBatchRunner extends Thread {
 	}
 
 
+	private void saveRoiFile(List<Roi> ijRois, String path) {
+		try (ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(path)));
+			 DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(zos))) {
+			RoiEncoder re = new RoiEncoder(dos);
+			for (int i = 0; i < ijRois.size(); i++) {
+				// WARNING: Prepending index does not ensure label is unique.
+				String label = i + "-" + ijRois.get(i).getName() + ".roi";
+				if (ijRois.get(i) == null) continue;
+				zos.putNextEntry(new ZipEntry(label));
+				re.write(ijRois.get(i));
+				dos.flush();
+			}
+		} catch (IOException e) {
+			IJ.error("Error while saving ROI file: " + e.getMessage());
+		}
+	}
+
+
 	private void saveOverlay(ImagePlus imp, Long imageId, String title, String property) {
 		if (outputOnLocal) {  //  local save
 			setState("Saving overlay ROIs...");
 			String path = directoryOut + File.separator + title + "_" + todayDate() + "_RoiSet.zip";
 			List<Roi> ijRois = getOverlay(imp);
-			RoiEncoder encoder = new RoiEncoder(path);
-			try {
-				for (Roi roi : ijRois) encoder.write(roi);
-			} catch (IOException e) {
-				IJ.error("Could not save Roi to file: " + e.getMessage());
-			}
+			saveRoiFile(ijRois, path);
 		}
 		if (outputOnOMERO && imageId != null) { // save on Omero
 			List<ROIWrapper> rois = getROIsFromOverlay(imp, property);
@@ -499,12 +523,7 @@ public class OMEROBatchRunner extends Thread {
 			setState("Saving ROIs...");
 			String path = directoryOut + File.separator + title + "_" + todayDate() + "_RoiSet.zip";
 			List<Roi> ijRois = getManagedRois(imp);
-			RoiEncoder encoder = new RoiEncoder(path);
-			try {
-				for (Roi roi : ijRois) encoder.write(roi);
-			} catch (IOException e) {
-				IJ.error("Could not save Roi to file: " + e.getMessage());
-			}
+			saveRoiFile(ijRois, path);
 		}
 		if (outputOnOMERO && imageId != null) { // save on Omero
 			List<ROIWrapper> rois = getROIsFromManager(imp, property);
