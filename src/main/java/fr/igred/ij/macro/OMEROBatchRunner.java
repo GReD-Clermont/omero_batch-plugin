@@ -93,6 +93,7 @@ public class OMEROBatchRunner extends Thread {
 	private void initRoiManager() {
 		rm = RoiManager.getInstance2();
 		if (rm == null) rm = RoiManager.getRoiManager();
+		rm.setVisible(false);
 	}
 
 
