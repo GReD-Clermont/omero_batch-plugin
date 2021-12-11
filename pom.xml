@@ -143,9 +143,13 @@
         <dependency>
             <groupId>ome</groupId>
             <artifactId>bio-formats_plugins</artifactId>
-            <version>6.6.1</version>
             <scope>provided</scope>
         </dependency>
+		<dependency>
+			<groupId>ome</groupId>
+			<artifactId>formats-bsd</artifactId>
+			<scope>provided</scope>
+		</dependency>
 		<dependency>
 			<groupId>ome</groupId>
 			<artifactId>formats-api</artifactId>

@@ -189,17 +189,25 @@ public class OMEROBatchRunner extends Thread {
 	}
 
 
+	/**
+	 * List all images contained in a directory
+	 *
+	 * @param directory The folder to process
+	 *
+	 * @return The list of images paths.
+	 */
 	private List<String> getImagesFromDirectory(String directory) {
-		//""" List all image's paths contained in a directory """
 		File dir = new File(directory);
 		File[] files = dir.listFiles();
 		if (files == null) files = new File[0];
-		List<String> pathsImagesIni = new ArrayList<>();
-		for (File value : files) {
-			String file = value.getAbsolutePath();
-			pathsImagesIni.add(file);
+		List<String> paths = new ArrayList<>();
+		for (File file : files) {
+			if(!file.isDirectory()) {
+				String path = file.getAbsolutePath();
+				paths.add(path);
+			}
 		}
-		return pathsImagesIni;
+		return paths;
 	}
 
 
@@ -282,52 +290,71 @@ public class OMEROBatchRunner extends Thread {
 	}
 
 
-	void runMacroOnLocalImages(List<String> images) throws IOException, FormatException {
+	void runMacroOnLocalImages(List<String> images) throws IOException {
 		//""" Run a macro on images from local computer and save the result """
 		String property = ROIWrapper.IJ_PROPERTY;
 		WindowManager.closeAllWindows();
-		int index = 0;
+
+		ImporterOptions options = new ImporterOptions();
+		options.setStackFormat(ImporterOptions.VIEW_HYPERSTACK);
+		options.setSwapDimensions(false);
+		options.setOpenAllSeries(false);
+		options.setSpecifyRanges(false);
+		options.setShowMetadata(false);
+		options.setShowOMEXML(false);
+		options.setShowROIs(true);
+		options.setCrop(false);
+		options.setSplitChannels(false);
+		options.setSplitFocalPlanes(false);
+		options.setSplitTimepoints(false);
+
+		List<String> processed = new ArrayList<>(images.size());
+		List<String> ignored = new ArrayList<>(images.size());
 		for (String image : images) {
-			// Open the image
-			ImporterOptions options = new ImporterOptions();
-			options.setId(image);
-			options.setStackFormat(ImporterOptions.VIEW_HYPERSTACK);
-			options.setSwapDimensions(false);
-			options.setOpenAllSeries(false);
-			options.setSpecifyRanges(false);
-			options.setShowMetadata(false);
-			options.setShowOMEXML(false);
-			options.setShowROIs(true);
-			options.setCrop(false);
-			options.setSplitChannels(false);
-			options.setSplitFocalPlanes(false);
-			options.setSplitTimepoints(false);
+			if (!processed.contains(image) && !ignored.contains(image)) {
+				// Open the image
+				options.setId(image);
+				int n = 0;
+				List<String> used = new ArrayList<>(0);
+				ImportProcess process = new ImportProcess(options);
+				try {
+					process.execute();
+					n = process.getSeriesCount();
+					used = Arrays.asList(process.getFileStitcher().getUsedFiles());
+				} catch (FormatException e) {
+					IJ.log(e.getMessage());
+					ignored.add(image);
+				}
+				int nFile = processed.size() + used.size() + ignored.size();
+				for (int i = 0; i < n; i++) {
+					String msg = String.format("File %d/%d, image %d/%d", nFile, images.size(), i, n);
+					setProgress(msg);
+					options.setSeriesOn(i, true);
+					ImagePlus[] imps;
+					try {
+						imps = BF.openImagePlus(options);
+					} catch (FormatException e) {
+						IJ.log(e.getMessage());
+						continue;
+					}
+					ImagePlus imp = imps[0];
+					imp.show();
 
-			ImportProcess process = new ImportProcess(options);
-			process.execute();
-			int n = process.getSeriesCount();
-			for (int i = 0; i < n; i++) {
-				String msg = String.format("File %d/%d, image %d/%d", index + 1, images.size(), i, n);
-				setProgress(msg);
-				options.setSeriesOn(i, true);
-				ImagePlus[] imps = BF.openImagePlus(options);
-				ImagePlus imp = imps[0];
-				imp.show();
+					// Initialize ROI Manager
+					initRoiManager();
 
-				// Initialize ROI Manager
-				initRoiManager();
+					// Analyse the image
+					script.setImage(imp);
+					script.run();
 
-				// Analyse the image
-				script.setImage(imp);
-				script.run();
-
-				// Save and Close the various components
-				imp.changes = false; // Prevent "Save Changes?" dialog
-				save(imp, null, property);
-				closeWindows();
-				options.setSeriesOn(i, false);
+					// Save and Close the various components
+					imp.changes = false; // Prevent "Save Changes?" dialog
+					save(imp, null, property);
+					closeWindows();
+					options.setSeriesOn(i, false);
+				}
+				processed.addAll(used);
 			}
-			index++;
 		}
 	}
 
