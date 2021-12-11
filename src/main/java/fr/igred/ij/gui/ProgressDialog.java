@@ -2,21 +2,31 @@ package fr.igred.ij.gui;
 
 import fr.igred.ij.macro.ProgressMonitor;
 
-import javax.swing.*;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 import java.awt.Container;
 import java.awt.Font;
 
-
+/**
+ * Progress dialog for batch processing.
+ */
 public class ProgressDialog extends JFrame implements ProgressMonitor {
 	private final JLabel progressLabel = new JLabel("", SwingConstants.CENTER);
 	private final JLabel stateLabel = new JLabel("", SwingConstants.CENTER);
 	private final JButton ok = new JButton("OK");
 
 
+	/**
+	 * Creates a new dialog.
+	 */
 	public ProgressDialog() {
-		this.setTitle("Progression");
-		this.setLocationRelativeTo(null);
-		this.setSize(300, 200);
+		super.setTitle("Progression");
+		super.setLocationRelativeTo(null);
+		super.setSize(300, 200);
 
 		Font warnFont = new Font("Arial", Font.PLAIN, 12);
 		Font progFont = new Font("Arial", Font.BOLD, 12);
@@ -27,7 +37,7 @@ public class ProgressDialog extends JFrame implements ProgressMonitor {
 		progressLabel.setFont(progFont);
 		stateLabel.setFont(progFont);
 
-		Container cp2 = this.getContentPane();
+		Container cp2 = super.getContentPane();
 		cp2.setLayout(new BoxLayout(cp2, BoxLayout.PAGE_AXIS));
 		JPanel panel0 = new JPanel();
 		panel0.add(warnLabel);
@@ -46,18 +56,31 @@ public class ProgressDialog extends JFrame implements ProgressMonitor {
 	}
 
 
+	/**
+	 * Sets the current progress.
+	 *
+	 * @param text The text for the current progress.
+	 */
 	@Override
 	public void setProgress(String text) {
 		progressLabel.setText(text);
 	}
 
 
+	/**
+	 * Sets the current state.
+	 *
+	 * @param text The text for the current state.
+	 */
 	@Override
 	public void setState(String text) {
 		stateLabel.setText(text);
 	}
 
 
+	/**
+	 * Signals the process is done.
+	 */
 	@Override
 	public void setDone() {
 		setState("");

@@ -39,6 +39,9 @@ import java.util.stream.Collectors;
 
 import static javax.swing.JOptionPane.showMessageDialog;
 
+/**
+ * Main window for the OMERO batch plugin.
+ */
 public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 
 	private static final String FORMAT = "%%-%ds (ID:%%%dd)";
@@ -115,11 +118,15 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	private transient ExperimenterWrapper exp;
 
 
+	/**
+	 * Creates a new window.
+	 */
 	public OMEROBatchPlugin() {
 		super("OMERO Batch Plugin");
-		this.client = new Client();
-
-		this.addWindowListener(new WindowAdapter() {
+		super.setSize(720, 640);
+		super.setMinimumSize(super.getSize());
+		super.setLocationRelativeTo(null);
+		super.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
 				super.windowClosing(e);
@@ -127,23 +134,21 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			}
 		});
 
-		Font nameFont = new Font("Arial", Font.ITALIC, 10);
-		Font listFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
+		this.client = new Client();
 
 		final String projectName = "Project Name: ";
 		final String datasetName = "Dataset Name: ";
 		final String browse = "Browse";
-		this.setSize(720, 640);
-		this.setMinimumSize(this.getSize());
-		this.setLocationRelativeTo(null);
-		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
+
+		final Font nameFont = new Font("Arial", Font.ITALIC, 10);
+		final Font listFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
 
 		JPanel panelWarning = new JPanel();
 		JLabel warning = new JLabel("Warning: all windows will be closed.");
 		warning.setForeground(new Color(250, 140, 0));
 		warning.setFont(new Font("Arial", Font.ITALIC + Font.BOLD, 12));
 		panelWarning.add(warning);
-		this.add(panelWarning);
+		super.add(panelWarning);
 
 		JPanel connection = new JPanel();
 		JLabel labelConnection = new JLabel("Connection status: ");
@@ -158,7 +163,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		connect.addActionListener(e -> connect());
 		disconnect.addActionListener(e -> disconnect());
 		connection.setBorder(BorderFactory.createTitledBorder("Connection"));
-		this.add(connection);
+		super.add(connection);
 
 		JPanel source = new JPanel();
 		JLabel labelEnterType = new JLabel("Where to get images to analyse:");
@@ -171,7 +176,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		omero.addItemListener(this::updateInput);
 		local.addItemListener(this::updateInput);
 		source.setBorder(BorderFactory.createTitledBorder("Source"));
-		this.add(source);
+		super.add(source);
 
 		JLabel labelGroup = new JLabel("Group Name: ");
 		JLabel labelUser = new JLabel("User Name: ");
@@ -225,7 +230,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		local.setSelected(true);
 		panelInput.setLayout(new BoxLayout(panelInput, BoxLayout.PAGE_AXIS));
 		panelInput.setBorder(BorderFactory.createTitledBorder("Input"));
-		this.add(panelInput);
+		super.add(panelInput);
 
 		JPanel macro1 = new JPanel();
 		JLabel macroLabel = new JLabel("Macro file: ");
@@ -272,7 +277,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		panelMacro.add(macro4);
 		panelMacro.setLayout(new BoxLayout(panelMacro, BoxLayout.PAGE_AXIS));
 		panelMacro.setBorder(BorderFactory.createTitledBorder("Macro"));
-		this.add(panelMacro);
+		super.add(panelMacro);
 
 		JLabel labelExtension = new JLabel("Suffix of output files:");
 		labelExtension.setLabelFor(suffix);
@@ -326,22 +331,41 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		panelOutput.add(output3b);
 		panelOutput.setLayout(new BoxLayout(panelOutput, BoxLayout.PAGE_AXIS));
 		panelOutput.setBorder(BorderFactory.createTitledBorder("Output"));
-		this.add(panelOutput);
+		super.add(panelOutput);
 
 		// validation button
 		JPanel panelBtn = new JPanel();
 		panelBtn.add(start);
 		start.addActionListener(this::start);
-		this.add(panelBtn);
+		super.add(panelBtn);
 	}
 
 
+	/**
+	 * Formats the object name using its ID and some padding.
+	 *
+	 * @param name    Object name.
+	 * @param id      Object ID.
+	 * @param padName Padding used for the name.
+	 * @param padId   Padding used for the ID.
+	 *
+	 * @return The formatted object qualifier.
+	 */
 	private static String format(String name, long id, int padName, int padId) {
 		String format = String.format(FORMAT, padName, padId);
 		return String.format(format, name, id);
 	}
 
 
+	/**
+	 * Gets the padding value for a list of OMERO objects.
+	 *
+	 * @param objects The OMERO objects.
+	 * @param mapper  The function applied to these objects.
+	 * @param <T>     The type of object.
+	 *
+	 * @return The padding required.
+	 */
 	private static <T extends GenericObjectWrapper<?>>
 	int getListPadding(Collection<T> objects, Function<? super T, ? extends Number> mapper) {
 		return objects.stream()
@@ -352,24 +376,70 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
-	@Override
-	public void run(String arg) {
-		this.setVisible(true);
-	}
-
-
-	public void errorWindow(String message) {
-		showMessageDialog(null, message, "Error", JOptionPane.ERROR_MESSAGE);
-	}
-
-
-	public void warningWindow(String message) {
+	/**
+	 * Shows a warning window.
+	 *
+	 * @param message The warning message.
+	 */
+	public static void warningWindow(String message) {
 		showMessageDialog(null, message, "Warning", JOptionPane.WARNING_MESSAGE);
 	}
 
 
+	/**
+	 * Shows a error window.
+	 *
+	 * @param message The error message.
+	 */
+	public static void errorWindow(String message) {
+		showMessageDialog(null, message, "Error", JOptionPane.ERROR_MESSAGE);
+	}
+
+
+	/**
+	 * Displays a window to choose a folder.
+	 *
+	 * @param textField The related text field.
+	 */
+	private static void chooseDirectory(JTextField textField) {
+		JFileChooser outputChoice = new JFileChooser(textField.getText());
+		outputChoice.setDialogTitle("Choose the directory");
+		outputChoice.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		int returnVal = outputChoice.showOpenDialog(null);
+		outputChoice.setAcceptAllFileFilterUsed(false); // ????
+		if (returnVal == JFileChooser.APPROVE_OPTION) {
+			File absDir = new File(outputChoice.getSelectedFile()
+											   .getAbsolutePath());
+			if (absDir.exists() && absDir.isDirectory()) {
+				textField.setText(absDir.toString());
+			} else {
+				////find a way to prevent JFileChooser closure?
+				errorWindow(String.format("Output:%nThe directory doesn't exist"));
+			}
+		}
+	}
+
+
+	/**
+	 * Starts the plugin and displays the window.
+	 *
+	 * @param arg The arguments.
+	 */
+	@Override
+	public void run(String arg) {
+		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
+		this.setVisible(true);
+	}
+
+
+	/**
+	 * Retrieves user projects and datasets.
+	 *
+	 * @param username The OMERO user.
+	 * @param userId   The user ID.
+	 */
 	public void userProjectsAndDatasets(String username, long userId) {
-		if (username.equals("All members")) {
+		if ("All members".equals(username)) {
 			userProjects = groupProjects;
 		} else {
 			userProjects = groupProjects.stream()
@@ -382,11 +452,21 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Updates the display when the input dataset is changed.
+	 *
+	 * @param e The event triggering this.
+	 */
 	private void updateInputDataset(ItemEvent e) {
 		this.repack();
 	}
 
 
+	/**
+	 * Updates the display when the input project is changed.
+	 *
+	 * @param e The event triggering this.
+	 */
 	private void updateInputProject(ItemEvent e) {
 		if (e.getStateChange() == ItemEvent.SELECTED) {
 			Object source = e.getSource();
@@ -408,11 +488,21 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Updates the display when the output dataset is changed.
+	 *
+	 * @param e The event triggering this.
+	 */
 	private void updateOutputDataset(ItemEvent e) {
 		this.repack();
 	}
 
 
+	/**
+	 * Updates the display when the output project is changed.
+	 *
+	 * @param e The event triggering this.
+	 */
 	private void updateOutputProject(ItemEvent e) {
 		if (e.getStateChange() == ItemEvent.SELECTED) {
 			Object source = e.getSource();
@@ -420,11 +510,10 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				int index = ((JComboBox<?>) source).getSelectedIndex();
 				ProjectWrapper project = myProjects.get(index);
 				this.myDatasets = project.getDatasets();
-				this.myDatasets.sort(Comparator.comparing(DatasetWrapper::getName,
-														  String.CASE_INSENSITIVE_ORDER));
+				this.myDatasets.sort(Comparator.comparing(DatasetWrapper::getName, String.CASE_INSENSITIVE_ORDER));
 				datasetListOut.removeAllItems();
 				int padName = getListPadding(myDatasets, d -> d.getName().length());
-				int padId = getListPadding(myDatasets, g -> (int) (Math.log10(g.getId()))) + 1;
+				int padId = getListPadding(myDatasets, g -> (int) (StrictMath.log10(g.getId()))) + 1;
 				for (DatasetWrapper d : this.myDatasets) {
 					datasetListOut.addItem(format(d.getName(), d.getId(), padName, padId));
 				}
@@ -434,6 +523,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Creates a new dataset and updates the display.
+	 *
+	 * @param e The event triggering this.
+	 */
 	private void createNewDataset(ActionEvent e) {
 		int index = projectListOut.getSelectedIndex();
 		ProjectWrapper project = myProjects.get(index);
@@ -475,6 +569,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Updates the display when the selected user is changed.
+	 *
+	 * @param e The event triggering this.
+	 */
 	private void updateUser(ItemEvent e) {
 		if (e.getStateChange() == ItemEvent.SELECTED) {
 			int index = userList.getSelectedIndex();
@@ -487,12 +586,12 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			datasetListIn.removeAllItems();
 			datasetListOut.removeAllItems();
 			int padName = getListPadding(userProjects, p -> p.getName().length());
-			int padId = getListPadding(userProjects, g -> (int) (Math.log10(g.getId()))) + 1;
+			int padId = getListPadding(userProjects, g -> (int) (StrictMath.log10(g.getId()))) + 1;
 			for (ProjectWrapper project : userProjects) {
 				projectListIn.addItem(format(project.getName(), project.getId(), padName, padId));
 			}
 			int padMyName = getListPadding(myProjects, p -> p.getName().length());
-			int padMyId = getListPadding(myProjects, g -> (int) (Math.log10(g.getId()))) + 1;
+			int padMyId = getListPadding(myProjects, g -> (int) (StrictMath.log10(g.getId()))) + 1;
 			for (ProjectWrapper project : myProjects) {
 				projectListOut.addItem(format(project.getName(), project.getId(), padMyName, padMyId));
 			}
@@ -502,6 +601,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Updates the display when the selected group is changed.
+	 *
+	 * @param e The event triggering this.
+	 */
 	private void updateGroup(ItemEvent e) {
 		if (e.getStateChange() == ItemEvent.SELECTED) {
 			int index = groupList.getSelectedIndex();
@@ -509,7 +613,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			String groupName = groups.get(index).getName();
 			client.switchGroup(id);
 
-			groupProjects = new ArrayList<>();
+			groupProjects = new ArrayList<>(0);
 			try {
 				groupProjects = client.getProjects();
 			} catch (ServiceException | ExecutionException | AccessException exception) {
@@ -527,7 +631,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 
 			userList.addItem("All members");
 			int padName = getListPadding(users, u -> u.getUserName().length());
-			int padId = getListPadding(users, g -> (int) (Math.log10(g.getId()))) + 1;
+			int padId = getListPadding(users, g -> (int) (StrictMath.log10(g.getId()))) + 1;
 			int selected = 0;
 			for (ExperimenterWrapper user : users) {
 				userList.addItem(format(user.getUserName(), user.getId(), padName, padId));
@@ -540,6 +644,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Updates the display when the input selection is changed.
+	 *
+	 * @param e The event triggering this.
+	 */
 	private void updateInput(ItemEvent e) {
 		if (omero.isSelected()) {
 			boolean connected = disconnect.isVisible();
@@ -566,27 +675,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
-	private void chooseDirectory(JTextField textField) {
-		JFileChooser outputChoice = new JFileChooser();
-		outputChoice.setDialogTitle("Choose the directory");
-		outputChoice.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-		int returnVal = outputChoice.showOpenDialog(null);
-		outputChoice.setAcceptAllFileFilterUsed(false); // ????
-		if (returnVal == JFileChooser.APPROVE_OPTION) {
-			File absDir = new File(outputChoice.getSelectedFile()
-											   .getAbsolutePath());
-			if (absDir.exists() && absDir.isDirectory()) {
-				textField.setText(absDir.toString());
-			} else {
-				////find a way to prevent JFileChooser closure?
-				errorWindow(String.format("Output:%nThe directory doesn't exist"));
-			}
-		}
-	}
-
-
+	/**
+	 * Displays a dialog to select the macro to run.
+	 */
 	private void chooseMacro() {
-		JFileChooser macroChoice = new JFileChooser();
+		JFileChooser macroChoice = new JFileChooser(macro.getText());
 		macroChoice.setDialogTitle("Choose the macro file");
 		macroChoice.setFileSelectionMode(JFileChooser.FILES_ONLY);
 		int returnVal = macroChoice.showOpenDialog(null);
@@ -607,6 +700,9 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Displays a dialog to set input arguments.
+	 */
 	private void setArguments() {
 		if (script != null) {
 			script.showInputDialog();
@@ -616,6 +712,9 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Re-enables start button and resets script state when batch process is over.
+	 */
 	@Override
 	public void onThreadFinished() {
 		start.setEnabled(true);
@@ -623,6 +722,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Displays a connection dialog to connect to OMERO.
+	 *
+	 * @return True if the connection was successful.
+	 */
 	private boolean connect() {
 		boolean connected = false;
 		OMEROConnectDialog connectDialog = new OMEROConnectDialog(client);
@@ -639,7 +743,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			groups.removeIf(g -> g.getId() <= 2);
 
 			int padName = getListPadding(groups, g -> g.getName().length());
-			int padId = getListPadding(groups, g -> (int) (Math.log10(g.getId()))) + 1;
+			int padId = getListPadding(groups, g -> (int) (StrictMath.log10(g.getId()))) + 1;
 			for (GroupWrapper group : groups) {
 				groupList.addItem(format(group.getName(), group.getId(), padName, padId));
 			}
@@ -662,6 +766,9 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Disconnects from OMERO.
+	 */
 	private void disconnect() {
 		client.disconnect();
 		local.setSelected(true);
@@ -676,6 +783,9 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Shows a new window to preview the current dataset.
+	 */
 	private void previewDataset() {
 		int index = datasetListIn.getSelectedIndex();
 		DatasetWrapper dataset = datasets.get(index);
@@ -710,6 +820,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Starts the batch processing.
+	 *
+	 * @param e The event triggering this.
+	 */
 	public void start(ActionEvent e) {
 		ProgressDialog progress = new ProgressDialog();
 		OMEROBatchRunner runner = new OMEROBatchRunner(script, client, progress);
@@ -765,12 +880,17 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		start.setEnabled(false);
 		try {
 			runner.start();
-		} catch (Exception exception) {
+		} catch (RuntimeException exception) {
 			errorWindow(exception.getMessage());
 		}
 	}
 
 
+	/**
+	 * Updates the display when the output selection is changed.
+	 *
+	 * @param e The event triggering this.
+	 */
 	private void updateOutput(ActionEvent e) {
 		boolean outputOnline = onlineOutput.isSelected();
 		boolean outputLocal = localOutput.isSelected();
@@ -795,9 +915,14 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Retrieves the local input from the text field and stores it in the corresponding attribute.
+	 *
+	 * @return True if the input is ok.
+	 */
 	private boolean getLocalInput() {
 		boolean check = false;
-		if (inputFolder.getText().equals("")) {
+		if (inputFolder.getText().isEmpty()) {
 			errorWindow(String.format("Input:%nNo directory selected"));
 		} else {
 			directoryIn = inputFolder.getText();
@@ -813,10 +938,15 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Retrieves the selected macro from the text field and stores it in the corresponding attribute.
+	 *
+	 * @return True if the file exists.
+	 */
 	private boolean getMacro() {
 		boolean check = false;
 		// macro file (mandatory)
-		if (macro.getText().equals("")) {
+		if (macro.getText().isEmpty()) {
 			errorWindow(String.format("Macro:%nNo macro selected"));
 		} else {
 			String macroChosen = macro.getText();
@@ -832,6 +962,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Retrieves the selected OMERO output and stores it in the corresponding attribute.
+	 *
+	 * @return True if the selection is ok.
+	 */
 	private boolean getOMEROOutput() {
 		boolean check = false;
 		if (onlineOutput.isSelected()) {
@@ -853,10 +988,15 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Retrieves the selected local output from the text field and stores it in the corresponding attribute.
+	 *
+	 * @return True if the selection is ok.
+	 */
 	private boolean getLocalOutput() {
 		boolean check = false;
 		if (localOutput.isSelected()) {
-			if (outputFolder.getText().equals("")) {
+			if (outputFolder.getText().isEmpty()) {
 				errorWindow(String.format("Output:%nNo directory selected"));
 			} else {
 				directoryOut = outputFolder.getText();
@@ -873,6 +1013,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Checks if "delete ROIs" can be selected.
+	 *
+	 * @return See above.
+	 */
 	private boolean checkDeleteROIs() {
 		boolean check = true;
 		if (checkDelROIs.isSelected() && (!onlineOutput.isSelected() || !checkROIs.isSelected())) {
@@ -883,6 +1028,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Checks if uploads to OMERO can be selected (tables or ROIs).
+	 *
+	 * @return See above.
+	 */
 	private boolean checkUploadLocalInput() {
 		boolean check = true;
 		if (local.isSelected() && onlineOutput.isSelected() && !checkImage.isSelected()) {
@@ -893,6 +1043,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Checks if at least one output is selected.
+	 *
+	 * @return See above.
+	 */
 	private boolean checkSelectedOutput() {
 		boolean check = true;
 		if (!checkResults.isSelected() && !checkROIs.isSelected() && !checkImage.isSelected()) {
@@ -903,6 +1058,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Checks the output selections and stores it in the appropriate fields.
+	 *
+	 * @return True if the selected parameters are ok.
+	 */
 	private boolean getOutput() {
 		boolean omeroCheck = getOMEROOutput();
 		boolean localCheck = getLocalOutput();
@@ -921,6 +1081,9 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 
+	/**
+	 * Repacks this window.
+	 */
 	private void repack() {
 		Dimension minSize = this.getMinimumSize();
 		this.setMinimumSize(this.getSize());
