@@ -33,10 +33,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,8 +99,8 @@ public class OMEROBatchRunner extends Thread {
 	 *
 	 * @return See above.
 	 */
-	private static String todayDate() {
-		return new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
+	private static String timestamp() {
+		return new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(ZonedDateTime.now());
 	}
 
 
@@ -676,7 +676,7 @@ public class OMEROBatchRunner extends Thread {
 	private void saveOverlay(ImagePlus imp, Long imageId, String title, String property) {
 		if (outputOnLocal) {  //  local save
 			setState("Saving overlay ROIs...");
-			String path = directoryOut + File.separator + title + "_" + todayDate() + "_RoiSet.zip";
+			String path = directoryOut + File.separator + title + "_" + timestamp() + "_RoiSet.zip";
 			List<Roi> ijRois = getOverlay(imp);
 			saveRoiFile(ijRois, path);
 		}
@@ -711,7 +711,7 @@ public class OMEROBatchRunner extends Thread {
 	private void saveROIManager(ImagePlus imp, Long imageId, String title, String property) {
 		if (outputOnLocal) {  //  local save
 			setState("Saving ROIs...");
-			String path = directoryOut + File.separator + title + "_" + todayDate() + "_RoiSet.zip";
+			String path = directoryOut + File.separator + title + "_" + timestamp() + "_RoiSet.zip";
 			List<Roi> ijRois = getManagedRois(imp);
 			saveRoiFile(ijRois, path);
 		}
@@ -751,7 +751,7 @@ public class OMEROBatchRunner extends Thread {
 		ResultsTable rt = ResultsTable.getResultsTable();
 		if (rt != null && rt.getHeadings().length > 0) {
 			resultsName = rt.getTitle();
-			String path = directoryOut + File.separator + resultsName + "_" + title + "_" + todayDate() + ".csv";
+			String path = directoryOut + File.separator + resultsName + "_" + title + "_" + timestamp() + ".csv";
 			rt.save(path);
 			if (outputOnOMERO) {
 				appendTable(rt, imageId, ijRois, property);
@@ -766,7 +766,7 @@ public class OMEROBatchRunner extends Thread {
 			// Skip if rt is null or if results already processed
 			if (rt == null || rt.getTitle().equals(resultsName)) continue;
 
-			String path = directoryOut + File.separator + candidate + "_" + title + "_" + todayDate() + ".csv";
+			String path = directoryOut + File.separator + candidate + "_" + title + "_" + timestamp() + ".csv";
 			rt.save(path);
 			if (outputOnOMERO) {
 				appendTable(rt, imageId, ijRois, property);
@@ -847,10 +847,9 @@ public class OMEROBatchRunner extends Thread {
 				for (Map.Entry<String, TableWrapper> entry : tables.entrySet()) {
 					String name = entry.getKey();
 					TableWrapper table = entry.getValue();
-					String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
 					String newName;
-					if (name == null || name.isEmpty()) newName = timestamp + "_" + table.getName();
-					else newName = timestamp + "_" + name;
+					if (name == null || name.isEmpty()) newName = timestamp() + "_" + table.getName();
+					else newName = timestamp() + "_" + name;
 					table.setName(newName);
 					project.addTable(client, table);
 				}
@@ -1025,7 +1024,7 @@ public class OMEROBatchRunner extends Thread {
 	}
 
 
-	public void addListener(BatchListener listener) {
+	public void setListener(BatchListener listener) {
 		this.listener = listener;
 	}
 

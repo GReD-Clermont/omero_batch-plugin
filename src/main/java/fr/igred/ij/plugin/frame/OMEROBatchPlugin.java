@@ -478,7 +478,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 														String.CASE_INSENSITIVE_ORDER));
 				datasetListIn.removeAllItems();
 				int padName = getListPadding(datasets, d -> d.getName().length());
-				int padId = getListPadding(datasets, g -> (int) (Math.log10(g.getId()))) + 1;
+				int padId = getListPadding(datasets, g -> (int) (StrictMath.log10(g.getId()))) + 1;
 				for (DatasetWrapper d : this.datasets) {
 					datasetListIn.addItem(format(d.getName(), d.getId(), padName, padId));
 				}
@@ -548,10 +548,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		}
 		projectListOut.setSelectedIndex(-1);
 		projectListOut.setSelectedIndex(index);
-		for (int i = 0; i < myDatasets.size(); i++) {
+		boolean searchOut = true;
+		for (int i = 0; searchOut && i < myDatasets.size(); i++) {
 			if (myDatasets.get(i).getId() == id) {
 				datasetListOut.setSelectedIndex(i);
-				break;
+				searchOut = false;
 			}
 		}
 
@@ -559,11 +560,12 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		projectListIn.setSelectedIndex(-1);
 		projectListIn.setSelectedIndex(inputProject);
 
+		boolean searchIn = true;
 		long inputDatasetID = datasets.get(datasetListIn.getSelectedIndex()).getId();
-		for (int i = 0; i < datasets.size(); i++) {
+		for (int i = 0; searchIn && i < datasets.size(); i++) {
 			if (datasets.get(i).getId() == inputDatasetID) {
 				datasetListIn.setSelectedIndex(i);
-				break;
+				searchIn = false;
 			}
 		}
 	}
@@ -728,6 +730,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	 * @return True if the connection was successful.
 	 */
 	private boolean connect() {
+		final Color green = new Color(0, 153, 0);
 		boolean connected = false;
 		OMEROConnectDialog connectDialog = new OMEROConnectDialog(client);
 		if (!connectDialog.wasCancelled()) {
@@ -749,14 +752,14 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			}
 
 			connectionStatus.setText("Connected");
-			connectionStatus.setForeground(new Color(0, 153, 0));
+			connectionStatus.setForeground(green);
 			connect.setVisible(false);
 			disconnect.setVisible(true);
 			omero.setSelected(true);
 
-			int index;
-			for (index = 0; index < groups.size(); index++) {
-				if (groups.get(index).getId() == groupId) break;
+			int index = -1;
+			for (int i = 0; index < 0 && i < groups.size(); i++) {
+				if (groups.get(i).getId() == groupId) index = i;
 			}
 			groupList.setSelectedIndex(-1);
 			groupList.setSelectedIndex(index);
@@ -787,6 +790,8 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	 * Shows a new window to preview the current dataset.
 	 */
 	private void previewDataset() {
+		final int thumbnailSize = 96;
+
 		int index = datasetListIn.getSelectedIndex();
 		DatasetWrapper dataset = datasets.get(index);
 		try {
@@ -796,7 +801,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			int missing = images.size() - nRows;
 			List<ImageWrapper> truncated = images.subList(0, nRows);
 			for (ImageWrapper i : truncated) {
-				JLabel thumbnail = new JLabel(new ImageIcon(i.getThumbnail(client, 96)));
+				JLabel thumbnail = new JLabel(new ImageIcon(i.getThumbnail(client, thumbnailSize)));
 				panel.add(thumbnail);
 
 				JLabel name = new JLabel(i.getName());
@@ -813,7 +818,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 											nRows, 2,
 											5, 5,  //initX, initY
 											10, 10); //xPad, yPad
-			JOptionPane.showMessageDialog(this, panel, "Preview", JOptionPane.INFORMATION_MESSAGE);
+			showMessageDialog(this, panel, "Preview", JOptionPane.INFORMATION_MESSAGE);
 		} catch (ServiceException | AccessException | OMEROServerError | ExecutionException | IOException e) {
 			errorWindow(e.getMessage());
 		}
@@ -828,7 +833,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	public void start(ActionEvent e) {
 		ProgressDialog progress = new ProgressDialog();
 		OMEROBatchRunner runner = new OMEROBatchRunner(script, client, progress);
-		runner.addListener(this);
+		runner.setListener(this);
 
 		// initiation of success variables
 		boolean checkInput;
