@@ -32,8 +32,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -100,7 +100,7 @@ public class OMEROBatchRunner extends Thread {
 	 * @return See above.
 	 */
 	private static String timestamp() {
-		return new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(ZonedDateTime.now());
+		return DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss").format(ZonedDateTime.now());
 	}
 
 
