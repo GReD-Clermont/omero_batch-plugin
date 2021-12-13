@@ -77,6 +77,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 
 	// choice of the record
 	private final JTextField inputFolder = new JTextField(20);
+	private final JCheckBox recursive = new JCheckBox("Recursive");
 	private final JTextField macro = new JTextField(20);
 	private final JLabel labelLanguage = new JLabel();
 	private final JLabel labelArguments = new JLabel();
@@ -224,6 +225,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		input2.add(inputFolderLabel);
 		input2.add(inputFolder);
 		input2.add(inputFolderBtn);
+		input2.add(recursive);
 		inputFolderBtn.addActionListener(e -> chooseDirectory(inputFolder));
 
 		JPanel panelInput = new JPanel();
@@ -857,6 +859,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			runner.setInputOnOMERO(false);
 			checkInput = getLocalInput();
 			runner.setDirectoryIn(directoryIn);
+			runner.setRecursive(recursive.isSelected());
 		}
 
 		if (!checkInput || !checkMacro || !checkOutput) {

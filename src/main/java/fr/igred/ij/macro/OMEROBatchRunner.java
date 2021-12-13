@@ -76,6 +76,7 @@ public class OMEROBatchRunner extends Thread {
 	private boolean clearROIs;
 	private boolean outputOnOMERO;
 	private boolean outputOnLocal;
+	private boolean recursive;
 	private long inputDatasetId;
 	private long outputDatasetId;
 	private long outputProjectId;
@@ -171,15 +172,17 @@ public class OMEROBatchRunner extends Thread {
 	 *
 	 * @return The list of images paths.
 	 */
-	private static List<String> getFilesFromDirectory(String directory) {
+	private static List<String> getFilesFromDirectory(String directory, boolean recursive) {
 		File dir = new File(directory);
 		File[] files = dir.listFiles();
 		if (files == null) files = EMPTY_FILE_ARRAY;
 		List<String> paths = new ArrayList<>(files.length);
 		for (File file : files) {
+			String path = file.getAbsolutePath();
 			if (!file.isDirectory()) {
-				String path = file.getAbsolutePath();
 				paths.add(path);
+			} else if (recursive) {
+				paths.addAll(getFilesFromDirectory(path, true));
 			}
 		}
 		return paths;
@@ -406,7 +409,7 @@ public class OMEROBatchRunner extends Thread {
 				runMacro(images);
 			} else {
 				setState("Retrieving files from input folder...");
-				List<String> files = getFilesFromDirectory(directoryIn);
+				List<String> files = getFilesFromDirectory(directoryIn, recursive);
 				setState("Macro running...");
 				runMacroOnLocalImages(files);
 			}
@@ -1075,6 +1078,11 @@ public class OMEROBatchRunner extends Thread {
 
 	public void setListener(BatchListener listener) {
 		this.listener = listener;
+	}
+
+
+	public void setRecursive(boolean recursive) {
+		this.recursive = recursive;
 	}
 
 }
