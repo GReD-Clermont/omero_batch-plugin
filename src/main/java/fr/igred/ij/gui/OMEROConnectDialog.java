@@ -15,6 +15,7 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import java.awt.Container;
+import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -27,32 +28,36 @@ import static javax.swing.JOptionPane.showMessageDialog;
  */
 public class OMEROConnectDialog extends JDialog implements ActionListener {
 
-	private final transient Client client;
-
 	private final JTextField hostField = new JTextField("");
 	private final JFormattedTextField portField = new JFormattedTextField(NumberFormat.getIntegerInstance());
 	private final JTextField userField = new JTextField("");
 	private final JPasswordField passwordField = new JPasswordField("");
 	private final JButton login = new JButton("Login");
 	private final JButton cancel = new JButton("Cancel");
+	private transient Client client;
 	private boolean cancelled = false;
 
 
 	/**
-	 * Creates a new dialog to connect the specified client.
-	 *
-	 * @param client The client.
+	 * Creates a new dialog to connect the specified client, but does not display it.
 	 */
-	public OMEROConnectDialog(Client client) {
+	public OMEROConnectDialog() {
 		super();
+
+		final int width = 350;
+		final int height = 200;
+
+		final String defaultHost = "bioimage.france-bioinformatique.fr";
+		final int defaultPort = 4064;
+
 		super.setModal(true);
 		super.setTitle("Connection to OMERO");
-		super.setSize(350, 200);
+		super.setSize(width, height);
+		super.setMinimumSize(new Dimension(width, height));
 		super.setLocationRelativeTo(null); // center the window
-		this.client = client;
 
-		String host = Prefs.get("omero.host", "bioimage.france-bioinformatique.fr");
-		long port = Prefs.getInt("omero.port", 4064);
+		String host = Prefs.get("omero.host", defaultHost);
+		long port = Prefs.getInt("omero.port", defaultPort);
 		String username = Prefs.get("omero.user", "");
 
 		Container cp = super.getContentPane();
@@ -66,8 +71,8 @@ public class OMEROConnectDialog extends JDialog implements ActionListener {
 
 		JPanel panelInfo2 = new JPanel();
 		panelInfo2.setLayout(new GridLayout(4, 1, 0, 3));
-		panelInfo1.setBorder(BorderFactory.createEmptyBorder(15, 10, 5, 10));
-		panelInfo2.setBorder(BorderFactory.createEmptyBorder(15, 10, 5, 10));
+		panelInfo1.setBorder(BorderFactory.createEmptyBorder(10, 10, 5, 10));
+		panelInfo2.setBorder(BorderFactory.createEmptyBorder(10, 10, 5, 10));
 
 		JLabel hostLabel = new JLabel("Host:");
 		panelInfo1.add(hostLabel);
@@ -91,8 +96,6 @@ public class OMEROConnectDialog extends JDialog implements ActionListener {
 		JPanel buttons = new JPanel();
 		buttons.add(cancel);
 		buttons.add(login);
-		login.addActionListener(this);
-		cancel.addActionListener(this);
 
 		panelInfo.add(panelInfo1);
 		panelInfo.add(panelInfo2);
@@ -100,7 +103,20 @@ public class OMEROConnectDialog extends JDialog implements ActionListener {
 		cp.add(buttons);
 
 		super.getRootPane().setDefaultButton(login);
-		super.setVisible(true);
+		super.setVisible(false);
+	}
+
+
+	/**
+	 * Displays the login window and connects the client.
+	 *
+	 * @param c The client.
+	 */
+	public void connect(Client c) {
+		this.client = c;
+		login.addActionListener(this);
+		cancel.addActionListener(this);
+		this.setVisible(true);
 	}
 
 

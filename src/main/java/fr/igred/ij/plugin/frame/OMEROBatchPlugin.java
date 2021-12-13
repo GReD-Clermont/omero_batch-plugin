@@ -107,7 +107,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	private final JButton start = new JButton("Start");
 
 	//variables to keep
-	private final transient Client client;
+	private transient Client client;
 	private transient ScriptRunner script;
 	private transient List<GroupWrapper> groups;
 	private transient List<ProjectWrapper> groupProjects;
@@ -128,18 +128,9 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	 */
 	public OMEROBatchPlugin() {
 		super("OMERO Batch Plugin");
-		super.setSize(720, 640);
-		super.setMinimumSize(super.getSize());
-		super.setLocationRelativeTo(null);
-		super.addWindowListener(new WindowAdapter() {
-			@Override
-			public void windowClosing(WindowEvent e) {
-				super.windowClosing(e);
-				client.disconnect();
-			}
-		});
 
-		this.client = new Client();
+		final int width = 720;
+		final int height = 640;
 
 		final String projectName = "Project Name: ";
 		final String datasetName = "Dataset Name: ";
@@ -147,11 +138,22 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 
 		final Font nameFont = new Font("Arial", Font.ITALIC, 10);
 		final Font listFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
+		final Font warnFont = new Font("Arial", Font.ITALIC + Font.BOLD, 12);
+
+		final Color orange = new Color(250, 140, 0);
+
+		final Dimension smallHorizontal = new Dimension(20, 0);
+		final Dimension maxTextSize = new Dimension(300, 18);
+
+		super.setSize(width, height);
+		super.setMinimumSize(super.getSize());
+		super.setLocationRelativeTo(null);
+		super.addWindowListener(new ClientDisconnector());
 
 		JPanel panelWarning = new JPanel();
 		JLabel warning = new JLabel("Warning: all windows will be closed.");
-		warning.setForeground(new Color(250, 140, 0));
-		warning.setFont(new Font("Arial", Font.ITALIC + Font.BOLD, 12));
+		warning.setForeground(orange);
+		warning.setFont(warnFont);
 		panelWarning.add(warning);
 		super.add(panelWarning);
 
@@ -161,7 +163,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		connectionStatus.setForeground(Color.RED);
 		connection.add(labelConnection);
 		connection.add(connectionStatus);
-		connection.add(Box.createRigidArea(new Dimension(50, 0)));
+		connection.add(Box.createRigidArea(smallHorizontal));
 		connection.add(connect);
 		connection.add(disconnect);
 		disconnect.setVisible(false);
@@ -189,7 +191,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		labelUser.setLabelFor(userList);
 		input1a.add(labelGroup);
 		input1a.add(groupList);
-		input1a.add(Box.createRigidArea(new Dimension(20, 0)));
+		input1a.add(Box.createRigidArea(smallHorizontal));
 		input1a.add(labelUser);
 		input1a.add(userList);
 		groupList.addItemListener(this::updateGroup);
@@ -204,10 +206,10 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		labelDatasetIn.setLabelFor(datasetListIn);
 		input1b.add(labelProjectIn);
 		input1b.add(projectListIn);
-		input1b.add(Box.createRigidArea(new Dimension(20, 0)));
+		input1b.add(Box.createRigidArea(smallHorizontal));
 		input1b.add(labelDatasetIn);
 		input1b.add(datasetListIn);
-		input1b.add(Box.createRigidArea(new Dimension(20, 0)));
+		input1b.add(Box.createRigidArea(smallHorizontal));
 		input1b.add(preview);
 		projectListIn.addItemListener(this::updateInputProject);
 		datasetListIn.addItemListener(this::updateInputDataset);
@@ -221,7 +223,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		JLabel inputFolderLabel = new JLabel("Images folder: ");
 		JButton inputFolderBtn = new JButton(browse);
 		inputFolderLabel.setLabelFor(inputFolder);
-		inputFolder.setMaximumSize(new Dimension(300, 30));
+		inputFolder.setMaximumSize(maxTextSize);
 		input2.add(inputFolderLabel);
 		input2.add(inputFolder);
 		input2.add(inputFolderBtn);
@@ -243,7 +245,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		JButton macroBtn = new JButton(browse);
 		JButton argsBtn = new JButton("Set arguments");
 		macroLabel.setLabelFor(macro);
-		macro.setMaximumSize(new Dimension(300, 18));
+		macro.setMaximumSize(maxTextSize);
 		macro1.add(macroLabel);
 		macro1.add(macro);
 		macro1.add(macroBtn);
@@ -278,7 +280,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		JPanel panelMacro = new JPanel();
 		panelMacro.add(macro1);
 		panelMacro.add(macro2);
-		panelMacro.add(Box.createRigidArea(new Dimension(0, 20)));
+		panelMacro.add(Box.createRigidArea(smallHorizontal));
 		panelMacro.add(macro3);
 		panelMacro.add(macro4);
 		panelMacro.setLayout(new BoxLayout(panelMacro, BoxLayout.PAGE_AXIS));
@@ -307,10 +309,10 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		labelDatasetOut.setLabelFor(datasetListOut);
 		output3a.add(labelProjectOut);
 		output3a.add(projectListOut);
-		output3a.add(Box.createRigidArea(new Dimension(20, 0)));
+		output3a.add(Box.createRigidArea(smallHorizontal));
 		output3a.add(labelDatasetOut);
 		output3a.add(datasetListOut);
-		output3a.add(Box.createRigidArea(new Dimension(20, 0)));
+		output3a.add(Box.createRigidArea(smallHorizontal));
 		output3a.add(newDatasetBtn);
 		projectListOut.addItemListener(this::updateOutputProject);
 		datasetListOut.addItemListener(this::updateOutputDataset);
@@ -322,7 +324,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		JLabel outputFolderLabel = new JLabel("Output folder: ");
 		JButton directoryBtn = new JButton(browse);
 		outputFolderLabel.setLabelFor(outputFolder);
-		outputFolder.setMaximumSize(new Dimension(300, 30));
+		outputFolder.setMaximumSize(maxTextSize);
 		output3b.add(outputFolderLabel);
 		output3b.add(outputFolder);
 		output3b.add(directoryBtn);
@@ -738,7 +740,9 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	private boolean connect() {
 		final Color green = new Color(0, 153, 0);
 		boolean connected = false;
-		OMEROConnectDialog connectDialog = new OMEROConnectDialog(client);
+		if(client == null) client = new Client();
+		OMEROConnectDialog connectDialog = new OMEROConnectDialog();
+		connectDialog.connect(client);
 		if (!connectDialog.wasCancelled()) {
 
 			long groupId = client.getCurrentGroupId();
@@ -1099,6 +1103,17 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		this.setMinimumSize(this.getSize());
 		this.pack();
 		this.setMinimumSize(minSize);
+	}
+
+
+	private class ClientDisconnector extends WindowAdapter {
+
+		@Override
+		public void windowClosing(WindowEvent e) {
+			super.windowClosing(e);
+			client.disconnect();
+		}
+
 	}
 
 }
