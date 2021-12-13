@@ -242,14 +242,10 @@ public class OMEROBatchRunner extends Thread {
 		List<Integer> idList = Arrays.stream(imageIds).boxed().collect(Collectors.toList());
 		idList.removeIf(i -> i.equals(ijOutputId));
 		idList.add(0, ijOutputId);
-		List<ImagePlus> outputs = idList.stream()
-										.map(WindowManager::getImage)
-										.filter(Objects::nonNull)
-										.collect(Collectors.toList());
-		if (outputs.isEmpty() || (outputs.size() == 1 && outputs.get(0).equals(inputImage))) {
-			LOGGER.warning("Warning: there is no new image.");
-		}
-		return outputs;
+		return idList.stream()
+					 .map(WindowManager::getImage)
+					 .filter(Objects::nonNull)
+					 .collect(Collectors.toList());
 	}
 
 
@@ -261,10 +257,10 @@ public class OMEROBatchRunner extends Thread {
 	 * @return See above.
 	 */
 	private static List<Roi> getOverlay(ImagePlus imp) {
-		List<Roi> ijRois = new ArrayList<>(0);
 		Overlay overlay = imp.getOverlay();
+		List<Roi> ijRois = new ArrayList<>(0);
 		if (overlay != null) {
-			ijRois = Arrays.asList(overlay.toArray());
+			ijRois = new ArrayList<>(Arrays.asList(overlay.toArray()));
 		}
 		for (Roi roi : ijRois) roi.setImage(imp);
 		return ijRois;
@@ -474,7 +470,7 @@ public class OMEROBatchRunner extends Thread {
 	 * @return See above.
 	 */
 	private List<Roi> getManagedRois(ImagePlus imp) {
-		List<Roi> ijRois = Arrays.asList(rm.getRoisAsArray());
+		List<Roi> ijRois = new ArrayList<>(Arrays.asList(rm.getRoisAsArray()));
 		for (Roi roi : ijRois) roi.setImage(imp);
 		return ijRois;
 	}
@@ -664,11 +660,9 @@ public class OMEROBatchRunner extends Thread {
 		}
 
 		if (saveImage) {
+			if (outputs.isEmpty()) LOGGER.info("Warning: there is no new image.");
 			List<Long> outputIds = new ArrayList<>(outputs.size());
-			for (ImagePlus imp : outputs) {
-				List<Long> ids = saveImage(imp, property);
-				outputIds.addAll(ids);
-			}
+			outputs.forEach(imp -> outputIds.addAll(saveImage(imp, property)));
 			if (!outputIds.isEmpty() && outputIsNotInput) {
 				omeroOutputId = outputIds.get(0);
 			}
@@ -796,35 +790,30 @@ public class OMEROBatchRunner extends Thread {
 	 * @param property The ROI property used to group shapes on OMERO.
 	 */
 	private void saveResults(ImagePlus imp, Long imageId, String title, String property) {
-		String resultsName = null;
 		List<Roi> ijRois = getOverlay(imp);
 		ijRois.addAll(getManagedRois(imp));
+
 		setState("Saving results files...");
-		ResultsTable rt = ResultsTable.getResultsTable();
-		if (rt != null && rt.getHeadings().length > 0) {
-			resultsName = rt.getTitle();
-			String path = directoryOut + File.separator + resultsName + "_" + title + "_" + timestamp() + ".csv";
-			rt.save(path);
-			if (outputOnOMERO) {
-				appendTable(rt, imageId, ijRois, property);
-				uploadFile(imageId, path);
-			}
-			rt.reset();
-		}
 		String[] candidates = WindowManager.getNonImageTitles();
-		for (String candidate : candidates) {
-			rt = ResultsTable.getResultsTable(candidate);
-
-			// Skip if rt is null or if results already processed
-			if (rt == null || rt.getTitle().equals(resultsName)) continue;
-
-			String path = directoryOut + File.separator + candidate + "_" + title + "_" + timestamp() + ".csv";
-			rt.save(path);
-			if (outputOnOMERO) {
-				appendTable(rt, imageId, ijRois, property);
-				uploadFile(imageId, path);
+		List<ResultsTable> results = Arrays.stream(candidates)
+										   .map(ResultsTable::getResultsTable)
+										   .collect(Collectors.toList());
+		results.add(0, ResultsTable.getResultsTable());
+		Map<String, Boolean> processed = new HashMap<>(results.size());
+		for (ResultsTable rt : results) {
+			if (rt != null) {
+				String name = rt.getTitle();
+				if (!Boolean.TRUE.equals(processed.get(name)) && rt.getHeadings().length > 0) {
+					String path = directoryOut + File.separator + name + "_" + title + "_" + timestamp() + ".csv";
+					rt.save(path);
+					if (outputOnOMERO) {
+						appendTable(rt, imageId, ijRois, property);
+						uploadFile(imageId, path);
+					}
+					rt.reset();
+					processed.put(name, true);
+				}
 			}
-			rt.reset();
 		}
 	}
 
