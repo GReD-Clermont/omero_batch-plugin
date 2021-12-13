@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.logging.Logger;
@@ -751,6 +752,9 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				exp = client.getUser(client.getUser().getUserName());
 			} catch (ExecutionException | ServiceException | AccessException e) {
 				IJ.error(e.getCause().getMessage());
+			} catch (NoSuchElementException e) {
+				IJ.error(e.getMessage());
+				return false;
 			}
 			groups = exp.getGroups();
 			groups.removeIf(g -> g.getId() <= 2);
@@ -1107,6 +1111,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 
 
 	private class ClientDisconnector extends WindowAdapter {
+
+		ClientDisconnector() {
+			super();
+		}
+
 
 		@Override
 		public void windowClosing(WindowEvent e) {
