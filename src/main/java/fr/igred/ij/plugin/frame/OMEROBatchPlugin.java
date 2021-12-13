@@ -29,12 +29,14 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static javax.swing.JOptionPane.showMessageDialog;
@@ -43,6 +45,8 @@ import static javax.swing.JOptionPane.showMessageDialog;
  * Main window for the OMERO batch plugin.
  */
 public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
+
+	private static final Logger LOGGER = Logger.getLogger(MethodHandles.lookup().lookupClass().getName());
 
 	private static final String FORMAT = "%%-%ds (ID:%%%dd)";
 
@@ -104,10 +108,6 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	//variables to keep
 	private final transient Client client;
 	private transient ScriptRunner script;
-	private String directoryOut;
-	private String directoryIn;
-	private Long outputDatasetId;
-	private Long outputProjectId;
 	private transient List<GroupWrapper> groups;
 	private transient List<ProjectWrapper> groupProjects;
 	private transient List<ProjectWrapper> userProjects;
@@ -116,6 +116,10 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	private transient List<DatasetWrapper> myDatasets;
 	private transient List<ExperimenterWrapper> users;
 	private transient ExperimenterWrapper exp;
+	private String directoryOut = null;
+	private String directoryIn = null;
+	private Long outputDatasetId = null;
+	private Long outputProjectId = null;
 
 
 	/**
@@ -619,7 +623,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			try {
 				groupProjects = client.getProjects();
 			} catch (ServiceException | ExecutionException | AccessException exception) {
-				IJ.log(exception.getMessage());
+				LOGGER.warning(exception.getMessage());
 			}
 			groupProjects.sort(Comparator.comparing(ProjectWrapper::getName,
 													String.CASE_INSENSITIVE_ORDER));
@@ -627,7 +631,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				GroupWrapper group = client.getGroup(groupName);
 				users = group.getExperimenters();
 			} catch (ExecutionException | ServiceException | AccessException exception) {
-				IJ.log(exception.getMessage());
+				LOGGER.warning(exception.getMessage());
 			}
 			userList.removeAllItems();
 
@@ -901,11 +905,9 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		boolean outputLocal = localOutput.isSelected();
 		boolean outputImage = checkImage.isSelected();
 		boolean outputResults = checkResults.isSelected();
-		boolean connected = disconnect.isVisible();
 
-		if (outputOnline && !connected) {
-			connected = connect();
-			outputOnline = connected;
+		if (outputOnline && !disconnect.isVisible()) {
+			outputOnline = connect();
 			onlineOutput.setSelected(outputOnline);
 		}
 

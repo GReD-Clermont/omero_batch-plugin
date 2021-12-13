@@ -92,6 +92,11 @@ public class ScriptRunner2 extends ScriptRunner {
 	}
 
 
+	/**
+	 * Sets the image to process.
+	 *
+	 * @param imp The image.
+	 */
 	@Override
 	public void setImage(ImagePlus imp) {
 		boolean macro = "IJ1 Macro".equals(getLanguage())
@@ -111,6 +116,11 @@ public class ScriptRunner2 extends ScriptRunner {
 	}
 
 
+	/**
+	 * Retrieves the arguments for the script.
+	 *
+	 * @return See above.
+	 */
 	@Override
 	public String getArguments() {
 		if (inputs == null || inputs.isEmpty()) {
@@ -121,6 +131,11 @@ public class ScriptRunner2 extends ScriptRunner {
 	}
 
 
+	/**
+	 * Sets the arguments for the script.
+	 *
+	 * @param arguments See above.
+	 */
 	@Override
 	public void setArguments(String arguments) {
 		super.setArguments(arguments);
@@ -132,12 +147,20 @@ public class ScriptRunner2 extends ScriptRunner {
 	}
 
 
+	/**
+	 * Retrieves the script language (or the file extension).
+	 *
+	 * @return See above.
+	 */
 	@Override
 	public String getLanguage() {
 		return language.isEmpty() ? super.getLanguage() : language;
 	}
 
 
+	/**
+	 * Displays an input dialog to define the input parameters.
+	 */
 	@Override
 	public void showInputDialog() {
 		if (detectedInputs) {
@@ -164,6 +187,9 @@ public class ScriptRunner2 extends ScriptRunner {
 	}
 
 
+	/**
+	 * Runs the script.
+	 */
 	@Override
 	public void run() {
 		boolean macro = "IJ1 Macro".equals(getLanguage())
@@ -187,27 +213,32 @@ public class ScriptRunner2 extends ScriptRunner {
 	}
 
 
+	/**
+	 * Resets the script (marks inputs as unresolved).
+	 */
 	@Override
 	public void reset() {
 		inputs.keySet().forEach(script::unresolveInput);
 	}
 
 
+	/**
+	 * Parses the arguments from a string.
+	 */
 	private void parseArguments() {
 		String args = super.getArguments();
 		if (getArguments().isEmpty()) {
 			inputs.clear();
 		} else {
-			try {
-				inputs = Arrays.stream(args.split(",")).map(s -> s.split("="))
-							   .collect(Collectors.toMap(s -> s[0], s -> parseString(s[1])));
-			} catch (ArrayIndexOutOfBoundsException e) {
-				IJ.error("Wrong format for arguments");
-			}
+			inputs = Arrays.stream(args.split(",")).map(s -> s.split("="))
+						   .collect(Collectors.toMap(s -> s[0], s -> s.length > 1 ? parseString(s[1]) : ""));
 		}
 	}
 
 
+	/**
+	 * Adds inputs to the script.
+	 */
 	private void addInputs() {
 		for (Map.Entry<String, Object> input : inputs.entrySet()) {
 			ScriptInfo scriptInfo = script.getInfo();

@@ -32,6 +32,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
 import java.nio.file.Files;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -55,6 +56,11 @@ import java.util.zip.ZipOutputStream;
  */
 public class OMEROBatchRunner extends Thread {
 
+	private static final Logger LOGGER = Logger.getLogger(MethodHandles.lookup().lookupClass().getName());
+
+	private static final File[] EMPTY_FILE_ARRAY = new File[0];
+	private static final int[] EMPTY_INT_ARRAY = new int[0];
+
 	private final ScriptRunner script;
 	private final Client client;
 	private final ProgressMonitor progress;
@@ -73,7 +79,7 @@ public class OMEROBatchRunner extends Thread {
 	private long inputDatasetId;
 	private long outputDatasetId;
 	private long outputProjectId;
-	private String directoryIn = "";
+	private String directoryIn;
 	private String directoryOut;
 	private String suffix;
 
@@ -83,10 +89,7 @@ public class OMEROBatchRunner extends Thread {
 
 
 	public OMEROBatchRunner(ScriptRunner script, Client client) {
-		super();
-		this.script = script;
-		this.client = client;
-		this.progress = new ProgressLog(Logger.getLogger(getClass().getName()));
+		this(script, client, new ProgressLog(LOGGER));
 	}
 
 
@@ -95,6 +98,11 @@ public class OMEROBatchRunner extends Thread {
 		this.script = script;
 		this.client = client;
 		this.progress = progress;
+		this.directoryIn = "";
+		this.suffix = "";
+		this.directoryOut = null;
+		this.rm = null;
+		this.listener = null;
 	}
 
 
@@ -166,7 +174,7 @@ public class OMEROBatchRunner extends Thread {
 	private static List<String> getFilesFromDirectory(String directory) {
 		File dir = new File(directory);
 		File[] files = dir.listFiles();
-		if (files == null) files = new File[0];
+		if (files == null) files = EMPTY_FILE_ARRAY;
 		List<String> paths = new ArrayList<>(files.length);
 		for (File file : files) {
 			if (!file.isDirectory()) {
@@ -202,7 +210,7 @@ public class OMEROBatchRunner extends Thread {
 					else used.add(file);
 					imageFiles.put(file, n);
 				} catch (IOException | FormatException e) {
-					IJ.log(e.getMessage());
+					LOGGER.info(e.getMessage());
 				}
 			}
 		}
@@ -226,7 +234,7 @@ public class OMEROBatchRunner extends Thread {
 
 		int[] imageIds = WindowManager.getIDList();
 		if (imageIds == null) {
-			imageIds = new int[0];
+			imageIds = EMPTY_INT_ARRAY;
 		}
 		List<Integer> idList = Arrays.stream(imageIds).boxed().collect(Collectors.toList());
 		idList.removeIf(i -> i.equals(ijOutputId));
@@ -235,7 +243,9 @@ public class OMEROBatchRunner extends Thread {
 										.map(WindowManager::getImage)
 										.filter(Objects::nonNull)
 										.collect(Collectors.toList());
-		if (outputs.isEmpty()) IJ.log("Warning: there is no new image.");
+		if (outputs.isEmpty() || (outputs.size() == 1 && outputs.get(0).equals(inputImage))) {
+			LOGGER.warning("Warning: there is no new image.");
+		}
 		return outputs;
 	}
 
@@ -406,7 +416,7 @@ public class OMEROBatchRunner extends Thread {
 			if (!outputOnLocal) {
 				setState("Temporary directory deletion...");
 				if (!deleteTemp(directoryOut)) {
-					IJ.log("Temp directory may not be deleted.");
+					LOGGER.warning("Temp directory may not be deleted.");
 				}
 			}
 			finished = true;
@@ -445,9 +455,9 @@ public class OMEROBatchRunner extends Thread {
 				}
 			}
 		} catch (ExecutionException | OMEROServerError | ServiceException | AccessException exception) {
-			IJ.log(exception.getMessage());
+			LOGGER.warning(exception.getMessage());
 		} catch (InterruptedException e) {
-			IJ.log(e.getMessage());
+			LOGGER.warning(e.getMessage());
 			Thread.currentThread().interrupt();
 		}
 	}
@@ -542,7 +552,7 @@ public class OMEROBatchRunner extends Thread {
 			int n = entry.getValue();
 			options.setId(entry.getKey());
 			for (int i = 0; i < n; i++) {
-				String msg = String.format("File %d/%d, image %d/%d", nFile, imageFiles.size(), i, n);
+				String msg = String.format("File %d/%d, image %d/%d", nFile, imageFiles.size(), i + 1, n);
 				setProgress(msg);
 				options.setSeriesOn(i, true);
 				try {
@@ -561,7 +571,7 @@ public class OMEROBatchRunner extends Thread {
 					imp.changes = false; // Prevent "Save Changes?" dialog
 					save(imp, null, property);
 				} catch (FormatException e) {
-					IJ.log(e.getMessage());
+					IJ.error(e.getMessage());
 				}
 				closeWindows();
 				options.setSeriesOn(i, false);
