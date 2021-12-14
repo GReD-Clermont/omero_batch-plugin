@@ -893,9 +893,17 @@ public class OMEROBatchRunner extends Thread {
 					else newName = timestamp() + "_" + name;
 					table.setName(newName);
 					project.addTable(client, table);
+					String path = directoryOut + File.separator + newName + ".csv";
+					table.saveAs(path, 'c');
+					project.addFile(client, new File(path));
 				}
 			} catch (ExecutionException | ServiceException | AccessException e) {
 				IJ.error("Could not save table: " + e.getMessage());
+			} catch (IOException e) {
+				IJ.error("Could not save table as file: " + e.getMessage());
+			} catch (InterruptedException e) {
+				IJ.error("Could not upload CSV to project: " + e.getMessage());
+				Thread.currentThread().interrupt();
 			}
 		}
 	}
