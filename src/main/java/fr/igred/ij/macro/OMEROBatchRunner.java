@@ -47,6 +47,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -60,6 +61,8 @@ public class OMEROBatchRunner extends Thread {
 
 	private static final File[] EMPTY_FILE_ARRAY = new File[0];
 	private static final int[] EMPTY_INT_ARRAY = new int[0];
+
+	private static final Pattern TITLE_AFTER_EXT = Pattern.compile("\\w+\\s?\\[?([^\\[\\]]*)]?");
 
 	private final ScriptRunner script;
 	private final Client client;
@@ -125,14 +128,14 @@ public class OMEROBatchRunner extends Thread {
 	 * @return The title, without the extension.
 	 */
 	private static String removeExtension(String title) {
-		if (title != null && title.matches("(.*)qptiff(.*)")) {
-			return title.replace(".qptiff", "_");
-		} else if (title != null) {
+		if (title != null) {
 			int index = title.lastIndexOf('.');
 			if (index == 0 || index == -1) {
 				return title;
 			} else {
-				return title.substring(0, index);
+				String afterExt = TITLE_AFTER_EXT.matcher(title.substring(index + 1)).replaceAll("$1");
+				String beforeExt = title.substring(0, index);
+				return afterExt.isEmpty() ? beforeExt : beforeExt + "_" + afterExt;
 			}
 		} else {
 			return null;
@@ -502,7 +505,7 @@ public class OMEROBatchRunner extends Thread {
 	 */
 	void runMacro(List<? extends ImageWrapper> images) {
 		String property = ROIWrapper.IJ_PROPERTY;
-		ij.WindowManager.closeAllWindows();
+		WindowManager.closeAllWindows();
 		int index = 0;
 		for (ImageWrapper image : images) {
 			setProgress("Image " + (index + 1) + "/" + images.size());
