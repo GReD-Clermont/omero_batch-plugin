@@ -638,6 +638,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			} catch (ExecutionException | ServiceException | AccessException exception) {
 				LOGGER.warning(exception.getMessage());
 			}
+			users.sort(Comparator.comparing(ExperimenterWrapper::getUserName));
 			userList.removeAllItems();
 
 			userList.addItem("All members");
@@ -1120,7 +1121,8 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		@Override
 		public void windowClosing(WindowEvent e) {
 			super.windowClosing(e);
-			client.disconnect();
+			Client c = client;
+			if(c != null) c.disconnect();
 		}
 
 	}
