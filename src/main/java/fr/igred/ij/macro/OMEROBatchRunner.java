@@ -135,6 +135,9 @@ public class OMEROBatchRunner extends Thread {
 			} else {
 				String afterExt = TITLE_AFTER_EXT.matcher(title.substring(index + 1)).replaceAll("$1");
 				String beforeExt = title.substring(0, index);
+				if(beforeExt.toLowerCase().endsWith(".ome") && beforeExt.lastIndexOf('.') > 0) {
+					beforeExt = beforeExt.substring(0, beforeExt.lastIndexOf('.'));
+				}
 				return afterExt.isEmpty() ? beforeExt : beforeExt + "_" + afterExt;
 			}
 		} else {
