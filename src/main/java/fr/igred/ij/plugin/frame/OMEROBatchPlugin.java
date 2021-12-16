@@ -16,6 +16,7 @@ import fr.igred.omero.repository.DatasetWrapper;
 import fr.igred.omero.repository.ImageWrapper;
 import fr.igred.omero.repository.ProjectWrapper;
 import ij.IJ;
+import ij.Prefs;
 import ij.plugin.frame.PlugInFrame;
 import loci.plugins.config.SpringUtilities;
 
@@ -225,6 +226,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		JButton inputFolderBtn = new JButton(browse);
 		inputFolderLabel.setLabelFor(inputFolder);
 		inputFolder.setMaximumSize(maxTextSize);
+		inputFolder.setName("omero.batch.dir.input");
 		input2.add(inputFolderLabel);
 		input2.add(inputFolder);
 		input2.add(inputFolderBtn);
@@ -246,6 +248,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		JButton macroBtn = new JButton(browse);
 		JButton argsBtn = new JButton("Set arguments");
 		macroLabel.setLabelFor(macro);
+		macro.setName("omero.batch.macro");
 		macro.setMaximumSize(maxTextSize);
 		macro1.add(macroLabel);
 		macro1.add(macro);
@@ -326,6 +329,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		JButton directoryBtn = new JButton(browse);
 		outputFolderLabel.setLabelFor(outputFolder);
 		outputFolder.setMaximumSize(maxTextSize);
+		outputFolder.setName("omero.batch.dir.output");
 		output3b.add(outputFolderLabel);
 		output3b.add(outputFolder);
 		output3b.add(directoryBtn);
@@ -411,7 +415,12 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	 * @param textField The related text field.
 	 */
 	private static void chooseDirectory(JTextField textField) {
-		JFileChooser outputChoice = new JFileChooser(textField.getText());
+		String pref = textField.getName();
+		if(pref.isEmpty()) pref = "omero.batch." + Prefs.DIR_IMAGE;
+		String previousDir = textField.getText();
+		if(previousDir.isEmpty()) previousDir = Prefs.get(pref, previousDir);
+
+		JFileChooser outputChoice = new JFileChooser(previousDir);
 		outputChoice.setDialogTitle("Choose the directory");
 		outputChoice.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 		int returnVal = outputChoice.showOpenDialog(null);
@@ -421,6 +430,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 											   .getAbsolutePath());
 			if (absDir.exists() && absDir.isDirectory()) {
 				textField.setText(absDir.toString());
+				Prefs.set(pref, absDir.toString());
 			} else {
 				////find a way to prevent JFileChooser closure?
 				errorWindow(String.format("Output:%nThe directory doesn't exist"));
@@ -691,7 +701,12 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	 * Displays a dialog to select the macro to run.
 	 */
 	private void chooseMacro() {
-		JFileChooser macroChoice = new JFileChooser(macro.getText());
+		String pref = macro.getName().isEmpty() ? "omero.batch.macro" : macro.getName();
+		String previousMacro = macro.getText();
+		if(previousMacro.isEmpty()) {
+			previousMacro = Prefs.get(pref, previousMacro);
+		}
+		JFileChooser macroChoice = new JFileChooser(previousMacro);
 		macroChoice.setDialogTitle("Choose the macro file");
 		macroChoice.setFileSelectionMode(JFileChooser.FILES_ONLY);
 		int returnVal = macroChoice.showOpenDialog(null);
@@ -699,6 +714,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			File absFile = new File(macroChoice.getSelectedFile().getAbsolutePath());
 			if (absFile.exists() && !absFile.isDirectory()) {
 				macro.setText(absFile.toString());
+				Prefs.set(pref, absFile.toString());
 			} else {
 				//find a way to prevent JFileChooser closure?
 				warningWindow(String.format("Macro:%nThe file doesn't exist"));
