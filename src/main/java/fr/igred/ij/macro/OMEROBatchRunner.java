@@ -17,6 +17,7 @@
 package fr.igred.ij.macro;
 
 import fr.igred.ij.gui.ProgressDialog;
+import fr.igred.ij.io.BatchImage;
 import fr.igred.omero.Client;
 import fr.igred.omero.annotations.TableWrapper;
 import fr.igred.omero.exception.AccessException;
@@ -35,11 +36,6 @@ import ij.io.RoiEncoder;
 import ij.measure.ResultsTable;
 import ij.plugin.frame.RoiManager;
 import ij.text.TextWindow;
-import loci.formats.FileStitcher;
-import loci.formats.FormatException;
-import loci.plugins.BF;
-import loci.plugins.in.ImportProcess;
-import loci.plugins.in.ImporterOptions;
 
 import java.awt.Component;
 import java.awt.Frame;
@@ -54,12 +50,9 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
@@ -75,17 +68,18 @@ public class OMEROBatchRunner extends Thread {
 
 	private static final Logger LOGGER = Logger.getLogger(MethodHandles.lookup().lookupClass().getName());
 
-	private static final File[] EMPTY_FILE_ARRAY = new File[0];
 	private static final int[] EMPTY_INT_ARRAY = new int[0];
 
 	private static final Pattern TITLE_AFTER_EXT = Pattern.compile("\\w+\\s?\\[?([^\\[\\]]*)]?");
 
-	private final ImagesForBatch images;
+	private final List<BatchImage> images;
 	private final ScriptRunner script;
 	private final Client client;
 	private final ProgressMonitor progress;
 
 	private final Map<String, TableWrapper> tables = new HashMap<>(5);
+
+	private BatchListener listener;
 
 	private boolean inputOnOMERO;
 	private boolean saveImage;
@@ -96,28 +90,22 @@ public class OMEROBatchRunner extends Thread {
 	private boolean clearROIs;
 	private boolean outputOnOMERO;
 	private boolean outputOnLocal;
-	private boolean recursive;
-	private long inputDatasetId;
 	private long outputDatasetId;
 	private long outputProjectId;
-	private String directoryIn;
 	private String directoryOut;
 	private String suffix;
-
 	private RoiManager rm;
 
-	private BatchListener listener;
 
-
-	public OMEROBatchRunner(ScriptRunner script, ImagesForBatch images, Client client) {
+	public OMEROBatchRunner(ScriptRunner script, List<BatchImage> images, Client client) {
 		this(script, images, client, new ProgressLog(LOGGER));
 	}
 
 
-	public OMEROBatchRunner(ScriptRunner script, ImagesForBatch images, Client client, ProgressMonitor progress) {
+	public OMEROBatchRunner(ScriptRunner script, List<BatchImage> images, Client client, ProgressMonitor progress) {
 		super();
 		this.script = script;
-		this.images = images;
+		this.images = new ArrayList<>(images);
 		this.client = client;
 		this.progress = progress;
 		this.suffix = "";
@@ -152,7 +140,7 @@ public class OMEROBatchRunner extends Thread {
 			} else {
 				String afterExt = TITLE_AFTER_EXT.matcher(title.substring(index + 1)).replaceAll("$1");
 				String beforeExt = title.substring(0, index);
-				if(beforeExt.toLowerCase().endsWith(".ome") && beforeExt.lastIndexOf('.') > 0) {
+				if (beforeExt.toLowerCase().endsWith(".ome") && beforeExt.lastIndexOf('.') > 0) {
 					beforeExt = beforeExt.substring(0, beforeExt.lastIndexOf('.'));
 				}
 				return afterExt.isEmpty() ? beforeExt : beforeExt + "_" + afterExt;
@@ -185,62 +173,6 @@ public class OMEROBatchRunner extends Thread {
 			}
 		}
 		return deleted;
-	}
-
-
-	/**
-	 * List all files contained in a directory
-	 *
-	 * @param directory The folder to process
-	 *
-	 * @return The list of images paths.
-	 */
-	private static List<String> getFilesFromDirectory(String directory, boolean recursive) {
-		File dir = new File(directory);
-		File[] files = dir.listFiles();
-		if (files == null) files = EMPTY_FILE_ARRAY;
-		List<String> paths = new ArrayList<>(files.length);
-		for (File file : files) {
-			String path = file.getAbsolutePath();
-			if (!file.isDirectory()) {
-				paths.add(path);
-			} else if (recursive) {
-				paths.addAll(getFilesFromDirectory(path, true));
-			}
-		}
-		return paths;
-	}
-
-
-	/**
-	 * Retrieves the images in a list of files using Bio-Formats.
-	 *
-	 * @param files   The list of files.
-	 * @param options The Bio-Formats importer options.
-	 *
-	 * @return A map containing the number of images for each file.
-	 */
-	private static Map<String, Integer> getImagesFromFiles(Collection<String> files, ImporterOptions options) {
-		List<String> used = new ArrayList<>(files.size());
-		Map<String, Integer> imageFiles = new LinkedHashMap<>(files.size());
-		for (String file : files) {
-			if (!used.contains(file)) {
-				// Open the image
-				options.setId(file);
-				ImportProcess process = new ImportProcess(options);
-				try {
-					process.execute();
-					int n = process.getSeriesCount();
-					FileStitcher fs = process.getFileStitcher();
-					if (fs != null) used = Arrays.asList(fs.getUsedFiles());
-					else used.add(file);
-					imageFiles.put(file, n);
-				} catch (IOException | FormatException e) {
-					LOGGER.info(e.getMessage());
-				}
-			}
-		}
-		return imageFiles;
 	}
 
 
@@ -341,30 +273,6 @@ public class OMEROBatchRunner extends Thread {
 		rm = RoiManager.getInstance2();
 		if (rm == null) rm = RoiManager.getRoiManager();
 		rm.setVisible(false);
-	}
-
-
-	/**
-	 * Initializes the Bio-Formats importer options.
-	 *
-	 * @return See above.
-	 *
-	 * @throws IOException If the importer options could not be initialized.
-	 */
-	private ImporterOptions initImporterOptions() throws IOException {
-		ImporterOptions options = new ImporterOptions();
-		options.setStackFormat(ImporterOptions.VIEW_HYPERSTACK);
-		options.setSwapDimensions(false);
-		options.setOpenAllSeries(false);
-		options.setSpecifyRanges(false);
-		options.setShowMetadata(false);
-		options.setShowOMEXML(false);
-		options.setShowROIs(loadROIs);
-		options.setCrop(false);
-		options.setSplitChannels(false);
-		options.setSplitFocalPlanes(false);
-		options.setSplitTimepoints(false);
-		return options;
 	}
 
 
@@ -541,61 +449,6 @@ public class OMEROBatchRunner extends Thread {
 			closeWindows();
 			index++;
 		}
-	}
-
-
-	/**
-	 * Runs a macro on local files and saves the results.
-	 *
-	 * @throws IOException A problem occurred reading a file.
-	 */
-	void runMacroOnLocalImages() throws IOException {
-		String property = ROIWrapper.IJ_PROPERTY;
-		WindowManager.closeAllWindows();
-		int nImage = 1;
-		for (BatchImage image : images) {
-			String msg = String.format("Image %d/%d", nImage, images.size());
-			setProgress(msg);
-			ImagePlus imp = image.getImagePlus();
-			if (imp != null) {
-				Long inputImageId = image.getId();
-				imp.show();
-
-				// Initialize ROI Manager
-				initRoiManager();
-
-				// Analyse the image
-				script.setImage(imp);
-				script.run();
-
-				// Save and Close the various components
-				imp.changes = false; // Prevent "Save Changes?" dialog
-				save(imp, inputImageId, property);
-			}
-			closeWindows();
-			nImage++;
-		}
-	}
-
-
-	/**
-	 * Opens an image from OMERO.
-	 *
-	 * @param image An OMERO image.
-	 *
-	 * @return An ImagePlus.
-	 */
-	private ImagePlus openImage(ImageWrapper image) {
-		setState("Opening image from OMERO...");
-		ImagePlus imp = null;
-		try {
-			imp = image.toImagePlus(client);
-			// Store image "annotate" permissions as a property in the ImagePlus object
-			imp.setProp("Annotable", String.valueOf(image.canAnnotate()));
-		} catch (ExecutionException | ServiceException | AccessException e) {
-			IJ.error("Could not load image: " + e.getMessage());
-		}
-		return imp;
 	}
 
 
@@ -946,16 +799,6 @@ public class OMEROBatchRunner extends Thread {
 	}
 
 
-	public long getInputDatasetId() {
-		return inputDatasetId;
-	}
-
-
-	public void setInputDatasetId(Long inputDatasetId) {
-		if (inputDatasetId != null) this.inputDatasetId = inputDatasetId;
-	}
-
-
 	public boolean shouldSaveROIs() {
 		return saveROIs;
 	}
@@ -1016,16 +859,6 @@ public class OMEROBatchRunner extends Thread {
 	}
 
 
-	public String getDirectoryIn() {
-		return directoryIn;
-	}
-
-
-	public void setDirectoryIn(String directoryIn) {
-		this.directoryIn = directoryIn;
-	}
-
-
 	public String getDirectoryOut() {
 		return directoryOut;
 	}
@@ -1073,11 +906,6 @@ public class OMEROBatchRunner extends Thread {
 
 	public void setListener(BatchListener listener) {
 		this.listener = listener;
-	}
-
-
-	public void setRecursive(boolean recursive) {
-		this.recursive = recursive;
 	}
 
 }

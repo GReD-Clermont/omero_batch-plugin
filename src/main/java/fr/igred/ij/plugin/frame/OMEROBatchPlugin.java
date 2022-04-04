@@ -18,11 +18,9 @@ package fr.igred.ij.plugin.frame;
 
 import fr.igred.ij.gui.OMEROConnectDialog;
 import fr.igred.ij.gui.ProgressDialog;
+import fr.igred.ij.io.BatchImage;
 import fr.igred.ij.macro.BatchListener;
-import fr.igred.ij.macro.ImagesForBatch;
-import fr.igred.ij.macro.LocalImagesForBatch;
 import fr.igred.ij.macro.OMEROBatchRunner;
-import fr.igred.ij.macro.OMEROImagesForBatch;
 import fr.igred.ij.macro.ScriptRunner;
 import fr.igred.omero.Client;
 import fr.igred.omero.GenericObjectWrapper;
@@ -61,6 +59,8 @@ import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import static fr.igred.ij.io.LocalBatchImage.listImages;
+import static fr.igred.ij.io.OMEROBatchImage.listImages;
 import static javax.swing.JOptionPane.showMessageDialog;
 
 /**
@@ -929,19 +929,19 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 
 		ProgressDialog progress = new ProgressDialog();
 		OMEROBatchRunner runner;
-		ImagesForBatch images;
+		List<BatchImage> images;
 		long inputDatasetId = -1L;
 		try {
-			if(omero.isSelected()) {
+			if (omero.isSelected()) {
 				int index = datasetListIn.getSelectedIndex();
 				DatasetWrapper dataset = datasets.get(index);
 				inputDatasetId = dataset.getId();
 				List<ImageWrapper> imageWrappers = dataset.getImages(client);
-				images = new OMEROImagesForBatch(client, imageWrappers);
+				images = listImages(client, imageWrappers);
 				checkInput = true;
 			} else {
 				checkInput = getLocalInput();
-				images = new LocalImagesForBatch(directoryIn, false);
+				images = listImages(directoryIn, recursive.isSelected());
 			}
 			runner = new OMEROBatchRunner(script, images, client, progress);
 			runner.setOutputDatasetId(inputDatasetId);
