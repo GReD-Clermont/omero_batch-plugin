@@ -80,13 +80,13 @@ public class OMEROBatchRunner extends Thread {
 	private final Map<String, TableWrapper> tables = new HashMap<>(5);
 
 	private BatchListener listener;
+	private RoiManager rm;
 
-	private boolean inputOnOMERO;
+	private boolean loadROIs;
 	private boolean saveImage;
 	private boolean saveROIs;
 	private boolean saveResults;
 	private boolean saveLog;
-	private boolean loadROIs;
 	private boolean clearROIs;
 	private boolean outputOnOMERO;
 	private boolean outputOnLocal;
@@ -94,7 +94,6 @@ public class OMEROBatchRunner extends Thread {
 	private long outputProjectId;
 	private String directoryOut;
 	private String suffix;
-	private RoiManager rm;
 
 
 	public OMEROBatchRunner(ScriptRunner script, List<BatchImage> images, Client client) {
@@ -439,7 +438,7 @@ public class OMEROBatchRunner extends Thread {
 					loadROIs(imageWrapper, imp, false);
 				}
 
-				// Analyse the image
+				// Process the image
 				script.setImage(imp);
 				script.run();
 
@@ -816,16 +815,6 @@ public class OMEROBatchRunner extends Thread {
 
 	public void setSaveResults(boolean saveResults) {
 		this.saveResults = saveResults;
-	}
-
-
-	public boolean isInputOnOMERO() {
-		return inputOnOMERO;
-	}
-
-
-	public void setInputOnOMERO(boolean inputOnOMERO) {
-		this.inputOnOMERO = inputOnOMERO;
 	}
 
 
