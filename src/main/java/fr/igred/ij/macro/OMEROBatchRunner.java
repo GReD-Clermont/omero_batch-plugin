@@ -80,6 +80,7 @@ public class OMEROBatchRunner extends Thread {
 
 	private static final Pattern TITLE_AFTER_EXT = Pattern.compile("\\w+\\s?\\[?([^\\[\\]]*)]?");
 
+	private final ImagesForBatch images;
 	private final ScriptRunner script;
 	private final Client client;
 	private final ProgressMonitor progress;
@@ -108,17 +109,17 @@ public class OMEROBatchRunner extends Thread {
 	private BatchListener listener;
 
 
-	public OMEROBatchRunner(ScriptRunner script, Client client) {
-		this(script, client, new ProgressLog(LOGGER));
+	public OMEROBatchRunner(ScriptRunner script, ImagesForBatch images, Client client) {
+		this(script, images, client, new ProgressLog(LOGGER));
 	}
 
 
-	public OMEROBatchRunner(ScriptRunner script, Client client, ProgressMonitor progress) {
+	public OMEROBatchRunner(ScriptRunner script, ImagesForBatch images, Client client, ProgressMonitor progress) {
 		super();
 		this.script = script;
+		this.images = images;
 		this.client = client;
 		this.progress = progress;
-		this.directoryIn = "";
 		this.suffix = "";
 		this.directoryOut = null;
 		this.rm = null;
@@ -419,18 +420,7 @@ public class OMEROBatchRunner extends Thread {
 				directoryOut = Files.createTempDirectory("Fiji_analysis").toString();
 			}
 
-			if (inputOnOMERO) {
-				setState("Retrieving images from OMERO...");
-				DatasetWrapper dataset = client.getDataset(inputDatasetId);
-				List<ImageWrapper> images = dataset.getImages(client);
-				setState("Macro running...");
-				runMacro(images);
-			} else {
-				setState("Retrieving files from input folder...");
-				List<String> files = getFilesFromDirectory(directoryIn, recursive);
-				setState("Macro running...");
-				runMacroOnLocalImages(files);
-			}
+			runMacro();
 			setProgress("");
 			uploadTables();
 
@@ -443,7 +433,7 @@ public class OMEROBatchRunner extends Thread {
 			finished = true;
 			setState("");
 			setDone();
-		} catch (NoSuchElementException | IOException | ServiceException | AccessException | ExecutionException e) {
+		} catch (IOException e) {
 			finished = true;
 			setDone();
 			setProgress("Macro cancelled");
@@ -520,29 +510,26 @@ public class OMEROBatchRunner extends Thread {
 
 
 	/**
-	 * Runs a macro on images from OMERO and saves the results.
-	 *
-	 * @param images List of images on OMERO.
+	 * Runs a macro on images and saves the results.
 	 */
-	void runMacro(List<? extends ImageWrapper> images) {
+	void runMacro() {
 		String property = ROIWrapper.IJ_PROPERTY;
 		WindowManager.closeAllWindows();
 		int index = 0;
-		for (ImageWrapper image : images) {
+		for (BatchImage image : images) {
 			setProgress("Image " + (index + 1) + "/" + images.size());
-			long inputImageId = image.getId();
-
-			// Open image from OMERO
-			ImagePlus imp = openImage(image);
+			ImagePlus imp = image.getImagePlus();
 			// If image could not be loaded, continue to next image.
 			if (imp != null) {
+				Long inputImageId = image.getId();
+				ImageWrapper imageWrapper = image.getImageWrapper();
+				imp.show();
+
 				// Initialize ROI Manager
 				initRoiManager();
-
-				// Load ROIs
-				if (loadROIs) loadROIs(image, imp, false);
-
-				imp.show();
+				if (loadROIs && imageWrapper != null) {
+					loadROIs(imageWrapper, imp, false);
+				}
 
 				// Analyse the image
 				script.setImage(imp);
@@ -560,46 +547,33 @@ public class OMEROBatchRunner extends Thread {
 	/**
 	 * Runs a macro on local files and saves the results.
 	 *
-	 * @param files List of image files.
-	 *
 	 * @throws IOException A problem occurred reading a file.
 	 */
-	void runMacroOnLocalImages(Collection<String> files) throws IOException {
+	void runMacroOnLocalImages() throws IOException {
 		String property = ROIWrapper.IJ_PROPERTY;
 		WindowManager.closeAllWindows();
+		int nImage = 1;
+		for (BatchImage image : images) {
+			String msg = String.format("Image %d/%d", nImage, images.size());
+			setProgress(msg);
+			ImagePlus imp = image.getImagePlus();
+			if (imp != null) {
+				Long inputImageId = image.getId();
+				imp.show();
 
-		ImporterOptions options = initImporterOptions();
-		Map<String, Integer> imageFiles = getImagesFromFiles(files, options);
-		int nFile = 1;
-		for (Map.Entry<String, Integer> entry : imageFiles.entrySet()) {
-			int n = entry.getValue();
-			options.setId(entry.getKey());
-			for (int i = 0; i < n; i++) {
-				String msg = String.format("File %d/%d, image %d/%d", nFile, imageFiles.size(), i + 1, n);
-				setProgress(msg);
-				options.setSeriesOn(i, true);
-				try {
-					ImagePlus[] imps = BF.openImagePlus(options);
-					ImagePlus imp = imps[0];
-					imp.show();
+				// Initialize ROI Manager
+				initRoiManager();
 
-					// Initialize ROI Manager
-					initRoiManager();
+				// Analyse the image
+				script.setImage(imp);
+				script.run();
 
-					// Analyse the image
-					script.setImage(imp);
-					script.run();
-
-					// Save and Close the various components
-					imp.changes = false; // Prevent "Save Changes?" dialog
-					save(imp, null, property);
-				} catch (FormatException e) {
-					IJ.error(e.getMessage());
-				}
-				closeWindows();
-				options.setSeriesOn(i, false);
+				// Save and Close the various components
+				imp.changes = false; // Prevent "Save Changes?" dialog
+				save(imp, inputImageId, property);
 			}
-			nFile++;
+			closeWindows();
+			nImage++;
 		}
 	}
 

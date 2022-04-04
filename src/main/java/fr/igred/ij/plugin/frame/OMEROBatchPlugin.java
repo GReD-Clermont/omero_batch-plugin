@@ -19,7 +19,10 @@ package fr.igred.ij.plugin.frame;
 import fr.igred.ij.gui.OMEROConnectDialog;
 import fr.igred.ij.gui.ProgressDialog;
 import fr.igred.ij.macro.BatchListener;
+import fr.igred.ij.macro.ImagesForBatch;
+import fr.igred.ij.macro.LocalImagesForBatch;
 import fr.igred.ij.macro.OMEROBatchRunner;
+import fr.igred.ij.macro.OMEROImagesForBatch;
 import fr.igred.ij.macro.ScriptRunner;
 import fr.igred.omero.Client;
 import fr.igred.omero.GenericObjectWrapper;
@@ -919,44 +922,46 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	 * @param e The event triggering this.
 	 */
 	public void start(ActionEvent e) {
-		ProgressDialog progress = new ProgressDialog();
-		OMEROBatchRunner runner = new OMEROBatchRunner(script, client, progress);
-		runner.setListener(this);
-
 		// initiation of success variables
 		boolean checkInput;
 		boolean checkMacro = getMacro();
 		boolean checkOutput = getOutput();
 
-		// input data
-		if (omero.isSelected()) {
-			runner.setInputOnOMERO(true);
-			int index = datasetListIn.getSelectedIndex();
-			DatasetWrapper dataset = datasets.get(index);
-			long inputDatasetId = dataset.getId();
-			runner.setInputDatasetId(inputDatasetId);
+		ProgressDialog progress = new ProgressDialog();
+		OMEROBatchRunner runner;
+		ImagesForBatch images;
+		long inputDatasetId = -1L;
+		try {
+			if(omero.isSelected()) {
+				int index = datasetListIn.getSelectedIndex();
+				DatasetWrapper dataset = datasets.get(index);
+				inputDatasetId = dataset.getId();
+				List<ImageWrapper> imageWrappers = dataset.getImages(client);
+				images = new OMEROImagesForBatch(client, imageWrappers);
+				checkInput = true;
+			} else {
+				checkInput = getLocalInput();
+				images = new LocalImagesForBatch(directoryIn, false);
+			}
+			runner = new OMEROBatchRunner(script, images, client, progress);
 			runner.setOutputDatasetId(inputDatasetId);
-			checkInput = true;
-		} else { // local.isSelected()
-			runner.setInputOnOMERO(false);
-			checkInput = getLocalInput();
-			runner.setDirectoryIn(directoryIn);
-			runner.setRecursive(recursive.isSelected());
+			runner.setListener(this);
+			runner.setSuffix(suffix.getText());
+			runner.setLoadROIS(checkLoadROIs.isSelected());
+			runner.setClearROIS(checkDelROIs.isSelected());
+			runner.setSaveImage(checkImage.isSelected());
+			runner.setSaveResults(checkResults.isSelected());
+			runner.setSaveROIs(checkROIs.isSelected());
+			runner.setSaveLog(checkLog.isSelected());
+		} catch (ServiceException | AccessException | ExecutionException | IOException exception) {
+			IJ.error(exception.getMessage());
+			return;
 		}
 
 		if (!checkInput || !checkMacro || !checkOutput) {
 			return;
 		}
 
-		// suffix
-		runner.setSuffix(suffix.getText());
-
-		runner.setLoadROIS(checkLoadROIs.isSelected());
-		runner.setClearROIS(checkDelROIs.isSelected());
-		runner.setSaveImage(checkImage.isSelected());
-		runner.setSaveResults(checkResults.isSelected());
-		runner.setSaveROIs(checkROIs.isSelected());
-		runner.setSaveLog(checkLog.isSelected());
 		if (onlineOutput.isSelected()) {
 			runner.setOutputOnOMERO(true);
 			if (checkResults.isSelected()) {
