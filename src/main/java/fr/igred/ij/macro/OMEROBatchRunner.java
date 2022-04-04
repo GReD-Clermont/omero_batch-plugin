@@ -76,39 +76,30 @@ public class OMEROBatchRunner extends Thread {
 	private final ScriptRunner script;
 	private final Client client;
 	private final ProgressMonitor progress;
+	private final BatchParameters params;
 
 	private final Map<String, TableWrapper> tables = new HashMap<>(5);
 
 	private BatchListener listener;
 	private RoiManager rm;
 
-	private boolean loadROIs;
-	private boolean saveImage;
-	private boolean saveROIs;
-	private boolean saveResults;
-	private boolean saveLog;
-	private boolean clearROIs;
-	private boolean outputOnOMERO;
-	private boolean outputOnLocal;
-	private long outputDatasetId;
-	private long outputProjectId;
-	private String directoryOut;
-	private String suffix;
 
-
-	public OMEROBatchRunner(ScriptRunner script, List<BatchImage> images, Client client) {
-		this(script, images, client, new ProgressLog(LOGGER));
+	public OMEROBatchRunner(ScriptRunner script, List<BatchImage> images, BatchParameters params, Client client) {
+		this(script, images, params, client, new ProgressLog(LOGGER));
 	}
 
 
-	public OMEROBatchRunner(ScriptRunner script, List<BatchImage> images, Client client, ProgressMonitor progress) {
+	public OMEROBatchRunner(ScriptRunner script,
+							List<BatchImage> images,
+							BatchParameters params,
+							Client client,
+							ProgressMonitor progress) {
 		super();
 		this.script = script;
 		this.images = new ArrayList<>(images);
+		this.params = new BatchParameters(params);
 		this.client = client;
 		this.progress = progress;
-		this.suffix = "";
-		this.directoryOut = null;
 		this.rm = null;
 		this.listener = null;
 	}
@@ -322,18 +313,18 @@ public class OMEROBatchRunner extends Thread {
 		}
 
 		try {
-			if (!outputOnLocal) {
+			if (!params.isOutputOnLocal()) {
 				setState("Temporary directory creation...");
-				directoryOut = Files.createTempDirectory("Fiji_analysis").toString();
+				params.setDirectoryOut(Files.createTempDirectory("Fiji_analysis").toString());
 			}
 
 			runMacro();
 			setProgress("");
 			uploadTables();
 
-			if (!outputOnLocal) {
+			if (!params.isOutputOnLocal()) {
 				setState("Temporary directory deletion...");
-				if (!deleteTemp(directoryOut)) {
+				if (!deleteTemp(params.getDirectoryOut())) {
 					LOGGER.warning("Temp directory may not be deleted.");
 				}
 			}
@@ -434,7 +425,7 @@ public class OMEROBatchRunner extends Thread {
 
 				// Initialize ROI Manager
 				initRoiManager();
-				if (loadROIs && imageWrapper != null) {
+				if (params.shouldLoadROIs() && imageWrapper != null) {
 					loadROIs(imageWrapper, imp, false);
 				}
 
@@ -505,11 +496,11 @@ public class OMEROBatchRunner extends Thread {
 		// If input image is expected as output for ROIs on OMERO but is not annotable, import it.
 		boolean annotable = Boolean.parseBoolean(inputImage.getProp("Annotable"));
 		boolean outputIsNotInput = !inputImage.equals(outputImage);
-		if (!outputOnOMERO || !saveROIs || annotable || outputIsNotInput) {
+		if (!params.isOutputOnOMERO() || !params.shouldSaveROIs() || annotable || outputIsNotInput) {
 			outputs.removeIf(inputImage::equals);
 		}
 
-		if (saveImage) {
+		if (params.shouldSaveImage()) {
 			if (outputs.isEmpty()) LOGGER.info("Warning: there is no new image.");
 			List<Long> outputIds = new ArrayList<>(outputs.size());
 			outputs.forEach(imp -> outputIds.addAll(saveImage(imp, property)));
@@ -518,12 +509,12 @@ public class OMEROBatchRunner extends Thread {
 			}
 		}
 
-		if (saveROIs) {
-			if (!saveImage) saveOverlay(outputImage, omeroOutputId, inputTitle, property);
+		if (params.shouldSaveROIs()) {
+			if (!params.shouldSaveImage()) saveOverlay(outputImage, omeroOutputId, inputTitle, property);
 			saveROIManager(outputImage, omeroOutputId, inputTitle, property);
 		}
-		if (saveResults) saveResults(outputImage, omeroOutputId, inputTitle, property);
-		if (saveLog) saveLog(omeroOutputId, inputTitle);
+		if (params.shouldSaveResults()) saveResults(outputImage, omeroOutputId, inputTitle, property);
+		if (params.shouldSaveLog()) saveLog(omeroOutputId, inputTitle);
 
 		for (ImagePlus imp : outputs) {
 			imp.changes = false;
@@ -543,14 +534,14 @@ public class OMEROBatchRunner extends Thread {
 	private List<Long> saveImage(ImagePlus image, String property) {
 		List<Long> ids = new ArrayList<>(0);
 		String title = removeExtension(image.getTitle());
-		String path = directoryOut + File.separator + title + suffix + ".tif";
+		String path = params.getDirectoryOut() + File.separator + title + params.getSuffix() + ".tif";
 		IJ.saveAsTiff(image, path);
-		if (outputOnOMERO) {
+		if (params.isOutputOnOMERO()) {
 			try {
 				setState("Import on OMERO...");
-				DatasetWrapper dataset = client.getDataset(outputDatasetId);
+				DatasetWrapper dataset = client.getDataset(params.getOutputDatasetId());
 				ids = dataset.importImage(client, path);
-				if (saveROIs && !ids.isEmpty()) {
+				if (params.shouldSaveROIs() && !ids.isEmpty()) {
 					saveOverlay(image, ids.get(0), title, property);
 				}
 			} catch (AccessException | ServiceException | OMEROServerError | ExecutionException e) {
@@ -570,17 +561,17 @@ public class OMEROBatchRunner extends Thread {
 	 * @param property The ROI property used to group shapes on OMERO.
 	 */
 	private void saveOverlay(ImagePlus imp, Long imageId, String title, String property) {
-		if (outputOnLocal) {  //  local save
+		if (params.isOutputOnLocal()) {  //  local save
 			setState("Saving overlay ROIs...");
-			String path = directoryOut + File.separator + title + "_" + timestamp() + "_RoiSet.zip";
+			String path = params.getDirectoryOut() + File.separator + title + "_" + timestamp() + "_RoiSet.zip";
 			List<Roi> ijRois = getOverlay(imp);
 			saveRoiFile(ijRois, path);
 		}
-		if (outputOnOMERO && imageId != null) { // save on Omero
+		if (params.isOutputOnOMERO() && imageId != null) { // save on Omero
 			List<ROIWrapper> rois = getROIsFromOverlay(imp, property);
 			try {
 				ImageWrapper image = client.getImage(imageId);
-				if (clearROIs) {
+				if (params.shouldClearROIs()) {
 					deleteROIs(image);
 				}
 				setState("Saving overlay ROIs on OMERO...");
@@ -605,17 +596,17 @@ public class OMEROBatchRunner extends Thread {
 	 * @param property The ROI property used to group shapes on OMERO.
 	 */
 	private void saveROIManager(ImagePlus imp, Long imageId, String title, String property) {
-		if (outputOnLocal) {  //  local save
+		if (params.isOutputOnLocal()) {  //  local save
 			setState("Saving ROIs...");
-			String path = directoryOut + File.separator + title + "_" + timestamp() + "_RoiSet.zip";
+			String path = params.getDirectoryOut() + File.separator + title + "_" + timestamp() + "_RoiSet.zip";
 			List<Roi> ijRois = getManagedRois(imp);
 			saveRoiFile(ijRois, path);
 		}
-		if (outputOnOMERO && imageId != null) { // save on Omero
+		if (params.isOutputOnOMERO() && imageId != null) { // save on Omero
 			List<ROIWrapper> rois = getROIsFromManager(imp, property);
 			try {
 				ImageWrapper image = client.getImage(imageId);
-				if (clearROIs) {
+				if (params.shouldClearROIs()) {
 					deleteROIs(image);
 				}
 				setState("Saving ROIs on OMERO...");
@@ -654,9 +645,10 @@ public class OMEROBatchRunner extends Thread {
 			if (rt != null) {
 				String name = rt.getTitle();
 				if (!Boolean.TRUE.equals(processed.get(name)) && rt.getHeadings().length > 0) {
-					String path = directoryOut + File.separator + name + "_" + title + "_" + timestamp() + ".csv";
+					String path =
+							params.getDirectoryOut() + File.separator + name + "_" + title + "_" + timestamp() + ".csv";
 					rt.save(path);
-					if (outputOnOMERO) {
+					if (params.isOutputOnOMERO()) {
 						appendTable(rt, imageId, ijRois, property);
 						uploadFile(imageId, path);
 					}
@@ -675,10 +667,10 @@ public class OMEROBatchRunner extends Thread {
 	 * @param title   The image title used to name the file when saving locally.
 	 */
 	private void saveLog(Long imageId, String title) {
-		String path = directoryOut + File.separator + title + "_log.txt";
+		String path = params.getDirectoryOut() + File.separator + title + "_log.txt";
 		IJ.selectWindow("Log");
 		IJ.saveAs("txt", path);
-		if (outputOnOMERO) uploadFile(imageId, path);
+		if (params.isOutputOnOMERO()) uploadFile(imageId, path);
 	}
 
 
@@ -731,10 +723,10 @@ public class OMEROBatchRunner extends Thread {
 	 * Upload the tables to OMERO.
 	 */
 	private void uploadTables() {
-		if (outputOnOMERO && saveResults) {
+		if (params.isOutputOnOMERO() && params.shouldSaveResults()) {
 			setState("Uploading tables...");
 			try {
-				ProjectWrapper project = client.getProject(outputProjectId);
+				ProjectWrapper project = client.getProject(params.getOutputProjectId());
 				for (Map.Entry<String, TableWrapper> entry : tables.entrySet()) {
 					String name = entry.getKey();
 					TableWrapper table = entry.getValue();
@@ -743,7 +735,7 @@ public class OMEROBatchRunner extends Thread {
 					else newName = timestamp() + "_" + name;
 					table.setName(newName);
 					project.addTable(client, table);
-					String path = directoryOut + File.separator + newName + ".csv";
+					String path = params.getDirectoryOut() + File.separator + newName + ".csv";
 					table.saveAs(path, 'c');
 					project.addFile(client, new File(path));
 				}
@@ -775,121 +767,6 @@ public class OMEROBatchRunner extends Thread {
 
 	public Client getClient() {
 		return client;
-	}
-
-
-	public long getOutputProjectId() {
-		return outputProjectId;
-	}
-
-
-	public void setOutputProjectId(Long outputProjectId) {
-		if (outputProjectId != null) this.outputProjectId = outputProjectId;
-	}
-
-
-	public long getOutputDatasetId() {
-		return outputDatasetId;
-	}
-
-
-	public void setOutputDatasetId(Long outputDatasetId) {
-		if (outputDatasetId != null) this.outputDatasetId = outputDatasetId;
-	}
-
-
-	public boolean shouldSaveROIs() {
-		return saveROIs;
-	}
-
-
-	public void setSaveROIs(boolean saveROIs) {
-		this.saveROIs = saveROIs;
-	}
-
-
-	public boolean shouldSaveResults() {
-		return saveResults;
-	}
-
-
-	public void setSaveResults(boolean saveResults) {
-		this.saveResults = saveResults;
-	}
-
-
-	public boolean shouldSaveImage() {
-		return saveImage;
-	}
-
-
-	public void setSaveImage(boolean saveImage) {
-		this.saveImage = saveImage;
-	}
-
-
-	public boolean shouldLoadROIs() {
-		return loadROIs;
-	}
-
-
-	public void setLoadROIS(boolean loadROIs) {
-		this.loadROIs = loadROIs;
-	}
-
-
-	public boolean shouldClearROIs() {
-		return clearROIs;
-	}
-
-
-	public void setClearROIS(boolean clearROIs) {
-		this.clearROIs = clearROIs;
-	}
-
-
-	public String getDirectoryOut() {
-		return directoryOut;
-	}
-
-
-	public void setDirectoryOut(String directoryOut) {
-		this.directoryOut = directoryOut;
-	}
-
-
-	public String getSuffix() {
-		return suffix;
-	}
-
-
-	public void setSuffix(String suffix) {
-		this.suffix = suffix;
-	}
-
-
-	public boolean isOutputOnOMERO() {
-		return outputOnOMERO;
-	}
-
-
-	public void setOutputOnOMERO(boolean outputOnOMERO) {
-		this.outputOnOMERO = outputOnOMERO;
-	}
-
-
-	public boolean isOutputOnLocal() {
-		return outputOnLocal;
-	}
-
-
-	public void setOutputOnLocal(boolean outputOnLocal) {
-		this.outputOnLocal = outputOnLocal;
-	}
-
-
-	public void setSaveLog(boolean saveLog) {
-		this.saveLog = saveLog;
 	}
 
 
