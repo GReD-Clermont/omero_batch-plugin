@@ -17,6 +17,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
 
+/**
+ * Image stored in a local file.
+ */
 public class LocalBatchImage implements BatchImage {
 
 	private static final Logger LOGGER = Logger.getLogger(MethodHandles.lookup().lookupClass().getName());
@@ -33,6 +36,14 @@ public class LocalBatchImage implements BatchImage {
 	}
 
 
+	/**
+	 * Creates a list of images to be opened, contained in the specified directory.
+	 *
+	 * @param directory The directory.
+	 * @param recursive Whether files should be listed recursively.
+	 *
+	 * @return The list of images.
+	 */
 	public static List<BatchImage> listImages(String directory, boolean recursive) throws IOException {
 		ImporterOptions options = initImporterOptions();
 		List<BatchImage> batchImages = new LinkedList<>();
@@ -85,6 +96,14 @@ public class LocalBatchImage implements BatchImage {
 	}
 
 
+	/**
+	 * List the files contained in the directory.
+	 *
+	 * @param directory The directory.
+	 * @param recursive Whether files should be listed recursively.
+	 *
+	 * @return The list of file paths.
+	 */
 	private static List<String> listFiles(File directory, boolean recursive) {
 		File[] files = directory.listFiles();
 		if (files == null) files = EMPTY_FILE_ARRAY;
@@ -101,12 +120,22 @@ public class LocalBatchImage implements BatchImage {
 	}
 
 
+	/**
+	 * Returns null.
+	 *
+	 * @return See above.
+	 */
 	@Override
 	public ImageWrapper getImageWrapper() {
 		return null;
 	}
 
 
+	/**
+	 * Opens the image and returns the corresponding ImagePlus.
+	 *
+	 * @return See above.
+	 */
 	@Override
 	public ImagePlus getImagePlus() {
 		ImagePlus imp = null;
@@ -120,12 +149,6 @@ public class LocalBatchImage implements BatchImage {
 			LOGGER.severe(e.getMessage());
 		}
 		return imp;
-	}
-
-
-	@Override
-	public Long getId() {
-		return index == null ? null : index.longValue();
 	}
 
 }

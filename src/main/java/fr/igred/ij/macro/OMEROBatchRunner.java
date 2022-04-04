@@ -429,8 +429,8 @@ public class OMEROBatchRunner extends Thread {
 			ImagePlus imp = image.getImagePlus();
 			// If image could not be loaded, continue to next image.
 			if (imp != null) {
-				Long inputImageId = image.getId();
 				ImageWrapper imageWrapper = image.getImageWrapper();
+				Long inputImageId = imageWrapper != null ? imageWrapper.getId() : null;
 				imp.show();
 
 				// Initialize ROI Manager

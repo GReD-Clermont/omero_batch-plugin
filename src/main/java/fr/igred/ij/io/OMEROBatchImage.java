@@ -13,6 +13,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+/**
+ * Image from OMERO.
+ */
 public class OMEROBatchImage implements BatchImage {
 	private static final Logger LOGGER = Logger.getLogger(MethodHandles.lookup().lookupClass().getName());
 
@@ -26,16 +29,38 @@ public class OMEROBatchImage implements BatchImage {
 	}
 
 
+
+
+	/**
+	 * Creates a list of OMERO images to be opened.
+	 *
+	 * @param client The OMERO client.
+	 * @param images The list of ImageWrappers.
+	 *
+	 * @return The list of images.
+	 */
 	public static List<BatchImage> listImages(Client client, Collection<? extends ImageWrapper> images) {
 		return images.stream().map(i -> new OMEROBatchImage(client, i)).collect(Collectors.toList());
 	}
 
 
+	/**
+	 * Returns the related ImageWrapper, or null if there is none.
+	 *
+	 * @return See above.
+	 */
+	@Override
 	public ImageWrapper getImageWrapper() {
 		return imageWrapper;
 	}
 
 
+	/**
+	 * Opens the image and returns the corresponding ImagePlus.
+	 *
+	 * @return See above.
+	 */
+	@Override
 	public ImagePlus getImagePlus() {
 		ImagePlus imp = null;
 		try {
@@ -46,11 +71,6 @@ public class OMEROBatchImage implements BatchImage {
 			LOGGER.severe(e.getMessage());
 		}
 		return imp;
-	}
-
-
-	public Long getId() {
-		return imageWrapper != null ? imageWrapper.getId() : null;
 	}
 
 }
