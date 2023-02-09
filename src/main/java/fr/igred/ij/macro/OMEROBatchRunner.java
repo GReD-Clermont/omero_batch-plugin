@@ -758,10 +758,7 @@ public class OMEROBatchRunner extends Thread {
 					deleteROIs(image);
 				}
 				setState("Saving overlay ROIs on OMERO...");
-				for (ROIWrapper roi : rois) {
-					roi.setImage(image);
-					image.saveROI(client, roi);
-				}
+				image.saveROIs(client, rois);
 				loadROIs(image, imp, true); // reload ROIs
 			} catch (ServiceException | AccessException | ExecutionException e) {
 				IJ.error("Could not import overlay ROIs to OMERO: " + e.getMessage());
@@ -793,10 +790,7 @@ public class OMEROBatchRunner extends Thread {
 					deleteROIs(image);
 				}
 				setState("Saving ROIs on OMERO...");
-				for (ROIWrapper roi : rois) {
-					roi.setImage(image);
-					image.saveROI(client, roi);
-				}
+				image.saveROIs(client, rois);
 				loadROIs(image, imp, false); // reload ROIs
 			} catch (ServiceException | AccessException | ExecutionException e) {
 				IJ.error("Could not import ROIs to OMERO: " + e.getMessage());
