@@ -4,14 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>pom-scijava-base</artifactId>
+        <artifactId>pom-scijava</artifactId>
         <groupId>org.scijava</groupId>
-        <version>12.0.0</version>
+        <version>33.2.0</version>
     </parent>
 
     <groupId>fr.igred</groupId>
     <artifactId>omero_batch-plugin</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
 
     <name>omero_batch-plugin</name>
     <description>ImageJ plugin to batch process images from OMERO.</description>
@@ -48,9 +48,9 @@
             <id>ppouchin</id>
             <name>Pierre Pouchin</name>
             <email>pierre.pouchin@uca.fr</email>
-            <url>https://www.gred-clermont.fr/directory/member/pierre-pouchin/</url>
+            <url>https://www.igred.fr/directory/member/pierre-pouchin/</url>
             <organization>GReD (INSERM U1103 / CNRS UMR 6293 / UCA)</organization>
-            <organizationUrl>https://www.gred-clermont.fr</organizationUrl>
+            <organizationUrl>https://www.igred.fr</organizationUrl>
             <roles>
                 <role>lead</role>
                 <role>developer</role>
@@ -118,21 +118,8 @@
         <maven.compiler.target>8</maven.compiler.target>
         <license.licenseName>gpl_v2</license.licenseName>
         <license.copyrightOwners>MICA &amp; GReD</license.copyrightOwners>
-        <allowedDuplicateClasses>com.esotericsoftware.kryo.*,com.esotericsoftware.minlog.*,com.esotericsoftware.reflectasm.*</allowedDuplicateClasses>
-        <soc.version>5.9.0</soc.version>
+        <soc.version>5.10.0</soc.version>
     </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>fr.igred</groupId>
-                <artifactId>simple-omero-client</artifactId>
-                <version>${soc.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -145,33 +132,33 @@
             <artifactId>bio-formats_plugins</artifactId>
             <scope>provided</scope>
         </dependency>
-		<dependency>
-			<groupId>ome</groupId>
-			<artifactId>formats-bsd</artifactId>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>ome</groupId>
-			<artifactId>formats-api</artifactId>
-			<scope>provided</scope>
-		</dependency>
+        <dependency>
+            <groupId>ome</groupId>
+            <artifactId>formats-bsd</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>ome</groupId>
+            <artifactId>formats-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>fr.igred</groupId>
             <artifactId>simple-omero-client</artifactId>
             <version>${soc.version}</version>
         </dependency>
-		<dependency>
-			<groupId>org.scijava</groupId>
-			<artifactId>scijava-common</artifactId>
-			<scope>provided</scope>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>org.scijava</groupId>
-			<artifactId>scijava-ui-swing</artifactId>
-			<scope>provided</scope>
-			<optional>true</optional>
-		</dependency>
+        <dependency>
+            <groupId>org.scijava</groupId>
+            <artifactId>scijava-common</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.scijava</groupId>
+            <artifactId>scijava-ui-swing</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
     <repositories>
@@ -187,11 +174,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.1.2</version>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -211,51 +193,7 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.6</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>report</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-site-plugin</artifactId>
-                <version>3.7.1</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-project-info-reports-plugin</artifactId>
-                <version>3.0.0</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.2.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.2.0</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -271,9 +209,10 @@
     <reporting>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.2.0</version>
+                <configuration>
+                    <detectJavaApiLink>false</detectJavaApiLink>
+                </configuration>
             </plugin>
         </plugins>
     </reporting>
