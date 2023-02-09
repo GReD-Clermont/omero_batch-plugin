@@ -63,7 +63,7 @@ public class OMEROConnectDialog extends JDialog implements ActionListener {
 		final int width = 350;
 		final int height = 200;
 
-		final String defaultHost = "bioimage.france-bioinformatique.fr";
+		final String defaultHost = "localhost";
 		final int defaultPort = 4064;
 
 		super.setModal(true);
