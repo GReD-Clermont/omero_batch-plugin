@@ -114,7 +114,6 @@ public class OMEROBatchRunner extends Thread {
 
 
 	public OMEROBatchRunner(ScriptRunner script, Client client, ProgressMonitor progress) {
-		super();
 		this.script = script;
 		this.client = client;
 		this.progress = progress;
@@ -617,7 +616,7 @@ public class OMEROBatchRunner extends Thread {
 		try {
 			imp = image.toImagePlus(client);
 			// Store image "annotate" permissions as a property in the ImagePlus object
-			imp.setProp("Annotable", String.valueOf(image.canAnnotate()));
+			imp.setProp("Annotatable", String.valueOf(image.canAnnotate()));
 		} catch (ExecutionException | ServiceException | AccessException e) {
 			IJ.error("Could not load image: " + e.getMessage());
 		}
