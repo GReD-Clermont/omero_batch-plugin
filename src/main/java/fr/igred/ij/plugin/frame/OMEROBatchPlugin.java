@@ -1256,12 +1256,28 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		long inputDatasetId = -1L;
 		try {
 			if (omero.isSelected()) {
-				int index = datasetListIn.getSelectedIndex();
-				DatasetWrapper dataset = datasets.get(index);
-				inputDatasetId = dataset.getId();
-				List<ImageWrapper> imageWrappers = dataset.getImages(client);
-				images = listImages(client, imageWrappers);
-				badInput = false;
+				if(omeroProjects.isSelected()) {
+					int index = datasetListIn.getSelectedIndex();
+					DatasetWrapper dataset = datasets.get(index);
+					inputDatasetId = dataset.getId();
+					List<ImageWrapper> imageWrappers = dataset.getImages(client);
+					images = listImages(client, imageWrappers);
+					badInput = false;
+				}else{
+					int plateIndex = plateListIn.getSelectedIndex();
+					int plateAcquisitionIndex = plateAcquisitionListIn.getSelectedIndex();
+					List<ImageWrapper> imageWrappers;
+
+					if(plateAcquisitionIndex <= 0){
+						PlateWrapper plate = plates.get(plateIndex);
+						imageWrappers = plate.getImages(client);
+					}else{
+						PlateAcquisitionWrapper acquisition = plateAcquisitions.get(plateAcquisitionIndex - 1);
+						imageWrappers = acquisition.getImages(client);
+					}
+					images = listImages(client, imageWrappers);
+					badInput = false;
+				}
 			} else { // local.isSelected()
 				badInput = !getLocalInput();
 				images = listImages(directoryIn, recursive.isSelected());
