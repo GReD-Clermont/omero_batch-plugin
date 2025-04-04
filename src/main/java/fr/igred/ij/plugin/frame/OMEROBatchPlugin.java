@@ -42,7 +42,6 @@ import ij.IJ;
 import ij.Prefs;
 import ij.plugin.frame.PlugInFrame;
 import loci.plugins.config.SpringUtilities;
-import ome.xml.model.Plate;
 
 import javax.swing.*;
 import java.awt.Color;
@@ -212,7 +211,8 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	private Long outputDatasetId = null;
 	/** The output project ID. */
 	private Long outputProjectId = null;
-
+	/** The output project ID. */
+	private Long outputScreenId = null;
 
 	/**
 	 * Creates a new window.
@@ -1352,7 +1352,12 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		if (onlineOutput.isSelected()) {
 			params.setOutputOnOMERO(true);
 			if (checkResults.isSelected()) {
-				params.setOutputProjectId(outputProjectId);
+				if(omeroProjects.isSelected()) {
+					params.setOutputProjectId(outputProjectId);
+				}
+				else {
+					params.setOutputScreenId(outputScreenId);
+				}
 			}
 			if (checkImage.isSelected()) {
 				params.setOutputDatasetId(outputDatasetId);
@@ -1464,16 +1469,36 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		if (onlineOutput.isSelected()) {
 			int projIndex = projectListOut.getSelectedIndex();
 			int datIndex = datasetListOut.getSelectedIndex();
+			int screenIndex = screenListOut.getSelectedIndex();
+			String newDatasetName = newDatasetOut.getText();
 			if (projIndex == -1 || projIndex > myProjects.size()) {
 				errorWindow(String.format("Output:%nNo project selected"));
 			} else if (datIndex == -1 || datIndex > myDatasets.size()) {
 				errorWindow(String.format("Output:%nNo dataset selected"));
+			} else if (screenIndex == -1 || screenIndex > myScreens.size()) {
+				errorWindow(String.format("Output:%nNo screen selected"));
+			} else if (newDatasetOut.getParent().isVisible() && newDatasetName.isEmpty()) {
+				errorWindow(String.format("Output:%nNo name set for the output dataset"));
 			} else {
 				check = true;
-				DatasetWrapper dataset = myDatasets.get(datIndex);
-				ProjectWrapper project = myProjects.get(projIndex);
-				outputDatasetId = dataset.getId();
-				outputProjectId = project.getId();
+				if(omeroProjects.isSelected()) {
+					DatasetWrapper dataset = myDatasets.get(datIndex);
+					ProjectWrapper project = myProjects.get(projIndex);
+					outputDatasetId = dataset.getId();
+					outputProjectId = project.getId();
+				}else{
+					try {
+						DatasetWrapper dataset = new DatasetWrapper(newDatasetName, "");
+						dataset.saveAndUpdate(client);
+						outputDatasetId = dataset.getId();
+					}catch (AccessException | ExecutionException | ServiceException e){
+						check = false;
+						String msg = "Error; cannot create the new dataset "+newDatasetName;
+						errorWindow(msg);
+					}
+					ScreenWrapper screen = myScreens.get(screenIndex);
+					outputScreenId = screen.getId();
+				}
 			}
 		}
 		return check;

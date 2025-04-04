@@ -35,6 +35,7 @@ public class BatchParameters {
 	private boolean outputOnLocal;
 	private long outputDatasetId;
 	private long outputProjectId;
+	private long outputScreenId;
 	private String directoryOut;
 	private String suffix;
 
@@ -52,6 +53,7 @@ public class BatchParameters {
 		this.outputOnOMERO = false;
 		this.outputOnLocal = false;
 		this.outputDatasetId = -1L;
+		this.outputScreenId = -1L;
 		this.outputProjectId = -1L;
 		this.suffix = "";
 		this.directoryOut = null;
@@ -74,6 +76,7 @@ public class BatchParameters {
 		this.outputOnLocal = parameters.outputOnLocal;
 		this.outputDatasetId = parameters.outputDatasetId;
 		this.outputProjectId = parameters.outputProjectId;
+		this.outputScreenId = parameters.outputScreenId;
 		this.suffix = parameters.suffix;
 		this.directoryOut = parameters.directoryOut;
 	}
@@ -88,6 +91,15 @@ public class BatchParameters {
 		return outputProjectId;
 	}
 
+	/**
+	 * Returns the output screen ID.
+	 *
+	 * @return See above.
+	 */
+	public long getOutputScreenId() {
+		return outputScreenId;
+	}
+
 
 	/**
 	 * Sets the output project ID.
@@ -99,6 +111,18 @@ public class BatchParameters {
 			this.outputProjectId = outputProjectId;
 		}
 	}
+
+	/**
+	 * Sets the output screen ID.
+	 *
+	 * @param outputScreenId See above.
+	 */
+	public void setOutputScreenId(Long outputScreenId) {
+		if (outputScreenId != null) {
+			this.outputScreenId = outputScreenId;
+		}
+	}
+
 
 
 	/**

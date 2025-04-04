@@ -22,11 +22,13 @@ import fr.igred.ij.io.BatchImage;
 import fr.igred.ij.io.ROIMode;
 import fr.igred.omero.AnnotatableWrapper;
 import fr.igred.omero.Client;
+import fr.igred.omero.GenericObjectWrapper;
 import fr.igred.omero.annotations.TableWrapper;
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.repository.DatasetWrapper;
+import fr.igred.omero.repository.GenericRepositoryObjectWrapper;
 import fr.igred.omero.repository.ImageWrapper;
 import fr.igred.omero.repository.ProjectWrapper;
 import fr.igred.omero.roi.ROIWrapper;
@@ -39,6 +41,7 @@ import ij.io.RoiEncoder;
 import ij.measure.ResultsTable;
 import ij.plugin.frame.RoiManager;
 import ij.text.TextWindow;
+import omero.gateway.model.ProjectData;
 
 import java.awt.Component;
 import java.awt.Frame;
@@ -845,13 +848,13 @@ public class OMEROBatchRunner extends Thread {
 	/**
 	 * Uploads a table to a project, if required.
 	 *
-	 * @param project The project the table belongs to.
+	 * @param repoWrapper The project the table belongs to.
 	 * @param table   The table.
 	 */
-	private void uploadTable(ProjectWrapper project, TableWrapper table) {
-		if (project != null && params.isOutputOnOMERO()) {
+	private void uploadTable(AnnotatableWrapper<?> repoWrapper, TableWrapper table) {
+		if (repoWrapper != null && params.isOutputOnOMERO()) {
 			try {
-				project.addTable(client, table);
+				repoWrapper.addTable(client, table);
 			} catch (ExecutionException | ServiceException | AccessException e) {
 				IJ.error("Could not upload table: " + e.getMessage());
 			}
@@ -863,24 +866,32 @@ public class OMEROBatchRunner extends Thread {
 	 * Upload the tables to OMERO.
 	 */
 	private void uploadTables() {
-		ProjectWrapper project = null;
+		AnnotatableWrapper<?> repoWrapper = null;
 		if (params.shouldSaveResults()) {
 			setState("Uploading tables...");
 			if (params.isOutputOnOMERO()) {
-				try {
-					project = client.getProject(params.getOutputProjectId());
-				} catch (ExecutionException | ServiceException | AccessException e) {
-					IJ.error("Could not retrieve project: " + e.getMessage());
+				if(params.getOutputProjectId() > 0) {
+					try {
+						repoWrapper = client.getProject(params.getOutputProjectId());
+					} catch (ExecutionException | ServiceException | AccessException e) {
+						IJ.error("Could not retrieve project: " + e.getMessage());
+					}
+				}else {
+					try {
+						repoWrapper = client.getScreen(params.getOutputScreenId());
+					} catch (ExecutionException | ServiceException | AccessException e) {
+						IJ.error("Could not retrieve screen: " + e.getMessage());
+					}
 				}
 			}
 			for (Map.Entry<String, TableWrapper> entry : tables.entrySet()) {
 				String name = entry.getKey();
 				TableWrapper table = entry.getValue();
 				String newName = renameTable(table, name);
-				uploadTable(project, table);
+				uploadTable(repoWrapper, table);
 				String path = params.getDirectoryOut() + File.separator + newName + ".csv";
 				saveTable(table, path);
-				uploadFile(project, path);
+				uploadFile(repoWrapper, path);
 			}
 		}
 	}
