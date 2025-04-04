@@ -42,6 +42,7 @@ import ij.IJ;
 import ij.Prefs;
 import ij.plugin.frame.PlugInFrame;
 import loci.plugins.config.SpringUtilities;
+import ome.xml.model.Plate;
 
 import javax.swing.*;
 import java.awt.Color;
@@ -159,6 +160,8 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	private final JComboBox<String> screenListOut = new JComboBox<>();
 	/** The list of possible output datasets. */
 	private final JComboBox<String> datasetListOut = new JComboBox<>();
+	/** The list of possible output datasets. */
+	private final JTextField newDatasetOut = new JTextField(20);
 	/** The list of possible output plates. */
 	private final JComboBox<String> plateListOut = new JComboBox<>();
 
@@ -195,8 +198,6 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	private transient List<ScreenWrapper> myScreens;
 	/** The current user's plates. */
 	private transient List<PlateWrapper> myPlates;
-	/** The current user's screens. */
-	private transient List<PlateAcquisitionWrapper> myPlateAcquisitions;
 	/** The current user's datasets. */
 	private transient List<DatasetWrapper> myDatasets;
 	/** The users. */
@@ -464,14 +465,29 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		datasetListOut.setFont(listFont);
 
 		JPanel output3b = new JPanel();
+		JPanel output3b1 = new JPanel();
+		JLabel labelScreenOut = new JLabel(screenName);
+		labelProjectOut.setLabelFor(screenListOut);
+		output3b.add(labelScreenOut);
+		output3b.add(screenListOut);
+		JLabel labelNewDatasetForPlate = new JLabel("Dataset to create:");
+		labelExtension.setLabelFor(newDatasetOut);
+		newDatasetOut.setText("");
+		output3b1.add(labelNewDatasetForPlate);
+		output3b1.add(newDatasetOut);
+		output3b.add(output3b1);
+		screenListOut.addItemListener(this::updateOutputScreen);
+		screenListOut.setFont(listFont);
+
+		JPanel output3c = new JPanel();
 		JLabel outputFolderLabel = new JLabel("Output folder: ");
 		JButton directoryBtn = new JButton(browse);
 		outputFolderLabel.setLabelFor(outputFolder);
 		outputFolder.setMaximumSize(maxTextSize);
 		outputFolder.setName("omero.batch.dir.output");
-		output3b.add(outputFolderLabel);
-		output3b.add(outputFolder);
-		output3b.add(directoryBtn);
+		output3c.add(outputFolderLabel);
+		output3c.add(outputFolder);
+		output3c.add(directoryBtn);
 		directoryBtn.addActionListener(e -> chooseDirectory(outputFolder));
 
 		// choice of output
@@ -480,6 +496,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		panelOutput.add(output2);
 		panelOutput.add(output3a);
 		panelOutput.add(output3b);
+		panelOutput.add(output3c);
 		panelOutput.setLayout(new BoxLayout(panelOutput, BoxLayout.PAGE_AXIS));
 		panelOutput.setBorder(BorderFactory.createTitledBorder("Output"));
 		super.add(panelOutput);
@@ -525,6 +542,8 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		output2.setVisible(false);
 		output3a.setVisible(false);
 		output3b.setVisible(false);
+		output3b1.setVisible(false);
+		output3c.setVisible(false);
 
 		// Initial pack
 		super.pack();
@@ -704,6 +723,8 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				if (!this.datasets.isEmpty()) {
 					datasetListIn.setSelectedIndex(0);
 				}
+
+				this.repack();
 			}
 		}
 	}
@@ -731,6 +752,8 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				if (!this.plates.isEmpty()) {
 					plateListIn.setSelectedIndex(0);
 				}
+
+				this.repack();
 			}
 		}
 	}
@@ -767,6 +790,8 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 					plateAcquisitionListIn.insertItemAt("All acquisitions",0);
 					plateAcquisitionListIn.setSelectedIndex(0);
 				}
+
+				this.repack();
 			}
 		}
 	}
@@ -804,6 +829,36 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				if (!this.datasets.isEmpty()) {
 					datasetListOut.setSelectedIndex(0);
 				}
+
+				this.repack();
+			}
+		}
+	}
+
+	/**
+	 * Updates the display when the output screen is changed.
+	 *
+	 * @param e The event triggering this.
+	 */
+	private void updateOutputScreen(ItemEvent e) {
+		if (e.getStateChange() == ItemEvent.SELECTED) {
+			Object source = e.getSource();
+			if (source instanceof JComboBox<?>) {
+				int index = ((JComboBox<?>) source).getSelectedIndex();
+				ScreenWrapper screen = myScreens.get(index);
+				this.myPlates = screen.getPlates();
+				this.myPlates.sort(Comparator.comparing(PlateWrapper::getName, String.CASE_INSENSITIVE_ORDER));
+				plateListOut.removeAllItems();
+				int padName = getListPadding(myPlates, d -> d.getName().length());
+				int padId = getListPadding(myPlates, g -> (int) (StrictMath.log10(g.getId()))) + 1;
+				for (PlateWrapper d : this.myPlates) {
+					plateListOut.addItem(format(d.getName(), d.getId(), padName, padId));
+				}
+				if (!this.myPlates.isEmpty()) {
+					plateListOut.setSelectedIndex(0);
+				}
+
+				this.repack();
 			}
 		}
 	}
@@ -996,9 +1051,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				if(omeroProjects.isSelected()){
 					projectListIn.getParent().setVisible(true);
 					screenListIn.getParent().setVisible(false);
+					updateOutput();
 				}else{
 					projectListIn.getParent().setVisible(false);
 					screenListIn.getParent().setVisible(true);
+					updateOutput();
 				}
 			} else {
 				local.setSelected(true);
@@ -1323,6 +1380,10 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	 * @param e The event triggering this.
 	 */
 	private void updateOutput(ActionEvent e) {
+		updateOutput();
+	}
+
+	private void updateOutput() {
 		boolean outputOnline = onlineOutput.isSelected();
 		boolean outputLocal = localOutput.isSelected();
 		boolean outputImage = checkImage.isSelected();
@@ -1334,8 +1395,10 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		}
 
 		suffix.getParent().setVisible(outputImage);
-		projectListOut.getParent().setVisible(outputOnline && (outputImage || outputResults));
-		datasetListOut.getParent().setVisible(outputOnline && outputImage);
+		projectListOut.getParent().setVisible(outputOnline && (outputImage || outputResults) && omeroProjects.isSelected());
+		screenListOut.getParent().setVisible(outputOnline && (outputImage || outputResults) && omeroScreens.isSelected());
+		datasetListOut.getParent().setVisible(outputOnline && outputImage && omeroProjects.isSelected());
+		newDatasetOut.getParent().setVisible(outputOnline && outputImage && omeroScreens.isSelected());
 		if (outputOnline && userProjects.equals(myProjects)) {
 			projectListOut.setSelectedIndex(projectListIn.getSelectedIndex());
 		}
