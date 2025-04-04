@@ -652,7 +652,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 
 
 	/**
-	 * Retrieves user projects and datasets.
+	 * Retrieves user projects
 	 *
 	 * @param username The OMERO user.
 	 * @param userId   The user ID.
@@ -671,7 +671,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	}
 
 	/**
-	 * Retrieves user projects and datasets.
+	 * Retrieves user screens
 	 *
 	 * @param username The OMERO user.
 	 * @param userId   The user ID.
