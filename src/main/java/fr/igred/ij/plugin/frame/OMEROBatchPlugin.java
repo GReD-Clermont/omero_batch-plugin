@@ -58,7 +58,9 @@ import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -1309,7 +1311,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		params.setSaveROIs(checkROIs.isSelected());
 		params.setSaveLog(checkLog.isSelected());
 
-		List<BatchImage> images;
+		Map<String, List<BatchImage>> images = new HashMap<>();
 		long inputDatasetId = -1L;
 		try {
 			if (omero.isSelected()) {
@@ -1318,26 +1320,30 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 					DatasetWrapper dataset = datasets.get(index);
 					inputDatasetId = dataset.getId();
 					List<ImageWrapper> imageWrappers = dataset.getImages(client);
-					images = listImages(client, imageWrappers);
+					images.put(dataset.getName(), listImages(client, imageWrappers));
 					badInput = false;
 				}else{
 					int plateIndex = plateListIn.getSelectedIndex();
 					int plateAcquisitionIndex = plateAcquisitionListIn.getSelectedIndex();
 					List<ImageWrapper> imageWrappers;
+					PlateWrapper plate = plates.get(plateIndex);
 
 					if(plateAcquisitionIndex <= 0){
-						PlateWrapper plate = plates.get(plateIndex);
-						imageWrappers = plate.getImages(client);
+						for(PlateAcquisitionWrapper acquisition : plateAcquisitions) {
+							imageWrappers = acquisition.getImages(client);
+							images.put(plate.getName() + "_" + acquisition.getName(),
+									   listImages(client, imageWrappers));
+						}
 					}else{
 						PlateAcquisitionWrapper acquisition = plateAcquisitions.get(plateAcquisitionIndex - 1);
 						imageWrappers = acquisition.getImages(client);
+						images.put(plate.getName() + "_"+acquisition.getName(), listImages(client, imageWrappers));
 					}
-					images = listImages(client, imageWrappers);
 					badInput = false;
 				}
 			} else { // local.isSelected()
 				badInput = !getLocalInput();
-				images = listImages(directoryIn, recursive.isSelected());
+				images.put(new File(directoryIn).getName(), listImages(directoryIn, recursive.isSelected()));
 			}
 			params.setOutputDatasetId(inputDatasetId);
 		} catch (ServiceException | AccessException | ExecutionException | IOException exception) {

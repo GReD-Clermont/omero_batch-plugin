@@ -88,7 +88,7 @@ public class OMEROBatchRunner extends Thread {
 	private static final Pattern TITLE_AFTER_EXT = Pattern.compile("\\w+\\s?\\[?([^\\[\\]]*)]?");
 
 	/** The images. */
-	private final List<BatchImage> images;
+	private final Map<String, List<BatchImage>> images;
 	/** The script. */
 	private final ScriptRunner script;
 	/** The OMERO client. */
@@ -116,7 +116,7 @@ public class OMEROBatchRunner extends Thread {
 	 * @param params The parameters.
 	 * @param client The OMERO client.
 	 */
-	public OMEROBatchRunner(ScriptRunner script, List<BatchImage> images, BatchParameters params, Client client) {
+	public OMEROBatchRunner(ScriptRunner script, Map<String, List<BatchImage>> images, BatchParameters params, Client client) {
 		this(script, images, params, client, new ProgressLog(LOGGER));
 	}
 
@@ -131,12 +131,12 @@ public class OMEROBatchRunner extends Thread {
 	 * @param progress The progress monitor.
 	 */
 	public OMEROBatchRunner(ScriptRunner script,
-							List<BatchImage> images,
+							Map<String, List<BatchImage>> images,
 							BatchParameters params,
 							Client client,
 							ProgressMonitor progress) {
 		this.script = script;
-		this.images = new ArrayList<>(images);
+		this.images = new HashMap<>(images);
 		this.params = new BatchParameters(params);
 		this.client = client;
 		this.progress = progress;
@@ -401,10 +401,13 @@ public class OMEROBatchRunner extends Thread {
 				params.setDirectoryOut(Files.createTempDirectory("Fiji_analysis").toString());
 			}
 
-			setState("Macro running...");
-			runMacro();
-			setProgress("");
-			uploadTables();
+			for(String imageParent : images.keySet()) {
+				setState("Macro running...");
+				runMacro(images.get(imageParent));
+				setProgress("");
+				uploadTables(imageParent);
+				tables.clear();
+			}
 
 			if (!params.isOutputOnLocal()) {
 				setState("Temporary directory deletion...");
@@ -497,7 +500,7 @@ public class OMEROBatchRunner extends Thread {
 	/**
 	 * Runs a macro on images and saves the results.
 	 */
-	private void runMacro() {
+	private void runMacro(List<BatchImage> images) {
 		String property = ROIWrapper.IJ_PROPERTY;
 		WindowManager.closeAllWindows();
 
@@ -865,7 +868,7 @@ public class OMEROBatchRunner extends Thread {
 	/**
 	 * Upload the tables to OMERO.
 	 */
-	private void uploadTables() {
+	private void uploadTables(String parentName) {
 		AnnotatableWrapper<?> repoWrapper = null;
 		if (params.shouldSaveResults()) {
 			setState("Uploading tables...");
@@ -885,7 +888,7 @@ public class OMEROBatchRunner extends Thread {
 				}
 			}
 			for (Map.Entry<String, TableWrapper> entry : tables.entrySet()) {
-				String name = entry.getKey();
+				String name = entry.getKey() + "_" + parentName;
 				TableWrapper table = entry.getValue();
 				String newName = renameTable(table, name);
 				uploadTable(repoWrapper, table);
