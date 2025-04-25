@@ -397,11 +397,11 @@ public class OMEROBatchRunner extends Thread {
 				params.setDirectoryOut(Files.createTempDirectory("Fiji_analysis").toString());
 			}
 
-			for(String imageParent : images.keySet()) {
+			for (Map.Entry<String, List<BatchImage>> entry : images.entrySet()) {
 				setState("Macro running...");
-				runMacro(images.get(imageParent));
+				runMacro(entry.getValue());
 				setProgress("");
-				uploadTables(imageParent);
+				uploadTables(entry.getKey());
 				tables.clear();
 			}
 
@@ -453,7 +453,7 @@ public class OMEROBatchRunner extends Thread {
 			LOGGER.warning(exception.getMessage());
 		} catch (InterruptedException e) {
 			LOGGER.warning(e.getMessage());
-			Thread.currentThread().interrupt();
+			currentThread().interrupt();
 		}
 	}
 
@@ -496,7 +496,7 @@ public class OMEROBatchRunner extends Thread {
 	/**
 	 * Runs a macro on images and saves the results.
 	 */
-	private void runMacro(List<BatchImage> images) {
+	private void runMacro(List<? extends BatchImage> images) {
 		String property = ROIWrapper.IJ_PROPERTY;
 		WindowManager.closeAllWindows();
 
@@ -815,7 +815,7 @@ public class OMEROBatchRunner extends Thread {
 				IJ.error("Error adding file to object:" + e.getMessage());
 			} catch (InterruptedException e) {
 				IJ.error("Error adding file to object:" + e.getMessage());
-				Thread.currentThread().interrupt();
+				currentThread().interrupt();
 			}
 		}
 	}
@@ -848,7 +848,7 @@ public class OMEROBatchRunner extends Thread {
 	 * Uploads a table to a project, if required.
 	 *
 	 * @param repoWrapper The project the table belongs to.
-	 * @param table   The table.
+	 * @param table       The table.
 	 */
 	private void uploadTable(AnnotatableWrapper<?> repoWrapper, TableWrapper table) {
 		if (repoWrapper != null && params.isOutputOnOMERO()) {
@@ -869,13 +869,13 @@ public class OMEROBatchRunner extends Thread {
 		if (params.shouldSaveResults()) {
 			setState("Uploading tables...");
 			if (params.isOutputOnOMERO()) {
-				if(params.getOutputProjectId() > 0) {
+				if (params.getOutputProjectId() > 0) {
 					try {
 						repoWrapper = client.getProject(params.getOutputProjectId());
 					} catch (ExecutionException | ServiceException | AccessException e) {
 						IJ.error("Could not retrieve project: " + e.getMessage());
 					}
-				}else {
+				} else {
 					try {
 						repoWrapper = client.getScreen(params.getOutputScreenId());
 					} catch (ExecutionException | ServiceException | AccessException e) {

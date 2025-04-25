@@ -118,7 +118,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	/** The list of datasets. */
 	private final JComboBox<String> datasetListIn = new JComboBox<>();
 	/** The list of plate acquisition. */
-	private final JComboBox<String> plateAcquisitionListIn = new JComboBox<>();
+	private final JComboBox<String> plateAcqListIn = new JComboBox<>();
 	/** The list of plates. */
 	private final JComboBox<String> plateListIn = new JComboBox<>();
 	/** The checkbox to delete ROIs. */
@@ -215,6 +215,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	private Long outputProjectId = null;
 	/** The output project ID. */
 	private Long outputScreenId = null;
+
 
 	/**
 	 * Creates a new window.
@@ -328,7 +329,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		JPanel input1c = new JPanel();
 		JLabel labelScreenIn = new JLabel(screenName);
 		JLabel labelPlateIn = new JLabel(plateName);
-		JLabel labelPlateAcquisitionIn = new JLabel(plateAcquisitionName);
+		JLabel labelPlateAcqIn = new JLabel(plateAcquisitionName);
 		JButton preview2 = new JButton("Preview");
 		labelScreenIn.setLabelFor(screenListIn);
 		labelPlateIn.setLabelFor(plateListIn);
@@ -338,8 +339,8 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		input1c.add(labelPlateIn);
 		input1c.add(plateListIn);
 		input1c.add(Box.createRigidArea(smallHorizontal));
-		input1c.add(labelPlateAcquisitionIn);
-		input1c.add(plateAcquisitionListIn);
+		input1c.add(labelPlateAcqIn);
+		input1c.add(plateAcqListIn);
 		input1c.add(Box.createRigidArea(smallHorizontal));
 		input1c.add(preview2);
 		screenListIn.addItemListener(this::updateInputScreen);
@@ -347,6 +348,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		preview2.addActionListener(e -> previewPlate());
 		screenListIn.setFont(listFont);
 		plateListIn.setFont(listFont);
+		plateAcqListIn.setFont(listFont);
 
 
 		JPanel input2 = new JPanel();
@@ -672,6 +674,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 								  .collect(Collectors.toList());
 	}
 
+
 	/**
 	 * Retrieves user screens
 	 *
@@ -683,12 +686,12 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			userScreens = groupScreens;
 		} else {
 			userScreens = groupScreens.stream()
-										.filter(screen -> screen.getOwner().getId() == userId)
-										.collect(Collectors.toList());
+									  .filter(screen -> screen.getOwner().getId() == userId)
+									  .collect(Collectors.toList());
 		}
 		myScreens = groupScreens.stream()
-								  .filter(screen -> screen.getOwner().getId() == exp.getId())
-								  .collect(Collectors.toList());
+								.filter(screen -> screen.getOwner().getId() == exp.getId())
+								.collect(Collectors.toList());
 	}
 
 
@@ -731,6 +734,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		}
 	}
 
+
 	/**
 	 * Updates the display when the input screen is changed.
 	 *
@@ -744,7 +748,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				ScreenWrapper screen = userScreens.get(index);
 				this.plates = screen.getPlates();
 				this.plates.sort(Comparator.comparing(PlateWrapper::getName,
-														String.CASE_INSENSITIVE_ORDER));
+													  String.CASE_INSENSITIVE_ORDER));
 				plateListIn.removeAllItems();
 				int padName = getListPadding(plates, d -> d.getName().length());
 				int padId = getListPadding(plates, g -> (int) (StrictMath.log10(g.getId()))) + 1;
@@ -760,6 +764,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		}
 	}
 
+
 	/**
 	 * Updates the display when the input plate is changed.
 	 *
@@ -773,24 +778,24 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				PlateWrapper plate = this.plates.get(index);
 				this.plateAcquisitions = plate.getPlateAcquisitions();
 				this.plateAcquisitions.sort(Comparator.comparing(PlateAcquisitionWrapper::getName,
-													  String.CASE_INSENSITIVE_ORDER));
-				plateAcquisitionListIn.removeAllItems();
+																 String.CASE_INSENSITIVE_ORDER));
+				plateAcqListIn.removeAllItems();
 				int padName = getListPadding(plateAcquisitions, n -> n.getName().length());
 				int padId = getListPadding(plateAcquisitions, g -> (int) (StrictMath.log10(g.getId()))) + 1;
 
 				for (PlateAcquisitionWrapper d : this.plateAcquisitions) {
 					String name = d.getName();
-					if(padName == 0){
+					if (padName == 0) {
 						padName = 4 + padId;
 					}
-					if(name.isEmpty()){
-						name = "Run "+d.getId();
+					if (name.isEmpty()) {
+						name = "Run " + d.getId();
 					}
-					plateAcquisitionListIn.addItem(format(name, d.getId(), padName, padId));
+					plateAcqListIn.addItem(format(name, d.getId(), padName, padId));
 				}
 				if (!this.plateAcquisitions.isEmpty()) {
-					plateAcquisitionListIn.insertItemAt("All acquisitions",0);
-					plateAcquisitionListIn.setSelectedIndex(0);
+					plateAcqListIn.insertItemAt("All acquisitions", 0);
+					plateAcqListIn.setSelectedIndex(0);
 				}
 
 				this.repack();
@@ -836,6 +841,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			}
 		}
 	}
+
 
 	/**
 	 * Updates the display when the output screen is changed.
@@ -936,9 +942,9 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			projectListOut.removeAllItems();
 			datasetListIn.removeAllItems();
 			datasetListOut.removeAllItems();
-			int padName = getListPadding(userProjects, p -> p.getName().length());
-			int padId = getListPadding(userProjects, g -> (int) (StrictMath.log10(g.getId()))) + 1;
 			for (ProjectWrapper project : userProjects) {
+				int padName = getListPadding(userProjects, p -> p.getName().length());
+				int padId = getListPadding(userProjects, g -> (int) (StrictMath.log10(g.getId()))) + 1;
 				projectListIn.addItem(format(project.getName(), project.getId(), padName, padId));
 			}
 			int padMyName = getListPadding(myProjects, p -> p.getName().length());
@@ -957,11 +963,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			screenListIn.removeAllItems();
 			screenListOut.removeAllItems();
 			plateListIn.removeAllItems();
-			plateAcquisitionListIn.removeAllItems();
+			plateAcqListIn.removeAllItems();
 			plateListOut.removeAllItems();
-			padName = getListPadding(userScreens, p -> p.getName().length());
-			padId = getListPadding(userScreens, g -> (int) (StrictMath.log10(g.getId()))) + 1;
 			for (ScreenWrapper project : userScreens) {
+				int padName = getListPadding(userScreens, p -> p.getName().length());
+				int padId = getListPadding(userScreens, g -> (int) (StrictMath.log10(g.getId()))) + 1;
 				screenListIn.addItem(format(project.getName(), project.getId(), padName, padId));
 			}
 			padMyName = getListPadding(myScreens, p -> p.getName().length());
@@ -1007,7 +1013,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				LOGGER.warning(exception.getMessage());
 			}
 			groupScreens.sort(Comparator.comparing(ScreenWrapper::getName,
-													String.CASE_INSENSITIVE_ORDER));
+												   String.CASE_INSENSITIVE_ORDER));
 
 			try {
 				GroupWrapper group = client.getGroup(groupName);
@@ -1050,11 +1056,11 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				projectListIn.getParent().setVisible(true);
 				omeroProjects.getParent().setVisible(true);
 				inputFolder.getParent().setVisible(false);
-				if(omeroProjects.isSelected()){
+				if (omeroProjects.isSelected()) {
 					projectListIn.getParent().setVisible(true);
 					screenListIn.getParent().setVisible(false);
 					updateOutput();
-				}else{
+				} else {
 					projectListIn.getParent().setVisible(false);
 					screenListIn.getParent().setVisible(true);
 					updateOutput();
@@ -1247,15 +1253,15 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		final int thumbnailSize = 96;
 
 		int plateIndex = plateListIn.getSelectedIndex();
-		int plateAcquisitionIndex = plateAcquisitionListIn.getSelectedIndex();
+		int plateAcquisitionIndex = plateAcqListIn.getSelectedIndex();
 
 		try {
 			JPanel panel = new JPanel(new SpringLayout());
 			List<ImageWrapper> images;
-			if(plateAcquisitionIndex <= 0){
+			if (plateAcquisitionIndex <= 0) {
 				PlateWrapper plate = plates.get(plateIndex);
 				images = plate.getImages(client);
-			}else{
+			} else {
 				PlateAcquisitionWrapper acquisition = plateAcquisitions.get(plateAcquisitionIndex - 1);
 				images = acquisition.getImages(client);
 			}
@@ -1315,29 +1321,29 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		long inputDatasetId = -1L;
 		try {
 			if (omero.isSelected()) {
-				if(omeroProjects.isSelected()) {
+				if (omeroProjects.isSelected()) {
 					int index = datasetListIn.getSelectedIndex();
 					DatasetWrapper dataset = datasets.get(index);
 					inputDatasetId = dataset.getId();
 					List<ImageWrapper> imageWrappers = dataset.getImages(client);
 					images.put(dataset.getName(), listImages(client, imageWrappers));
 					badInput = false;
-				}else{
+				} else {
 					int plateIndex = plateListIn.getSelectedIndex();
-					int plateAcquisitionIndex = plateAcquisitionListIn.getSelectedIndex();
+					int plateAcquisitionIndex = plateAcqListIn.getSelectedIndex();
 					List<ImageWrapper> imageWrappers;
 					PlateWrapper plate = plates.get(plateIndex);
 
-					if(plateAcquisitionIndex <= 0){
-						for(PlateAcquisitionWrapper acquisition : plateAcquisitions) {
+					if (plateAcquisitionIndex <= 0) {
+						for (PlateAcquisitionWrapper acquisition : plateAcquisitions) {
 							imageWrappers = acquisition.getImages(client);
 							images.put(plate.getName() + "_" + acquisition.getName(),
 									   listImages(client, imageWrappers));
 						}
-					}else{
+					} else {
 						PlateAcquisitionWrapper acquisition = plateAcquisitions.get(plateAcquisitionIndex - 1);
 						imageWrappers = acquisition.getImages(client);
-						images.put(plate.getName() + "_"+acquisition.getName(), listImages(client, imageWrappers));
+						images.put(plate.getName() + "_" + acquisition.getName(), listImages(client, imageWrappers));
 					}
 					badInput = false;
 				}
@@ -1358,10 +1364,9 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		if (onlineOutput.isSelected()) {
 			params.setOutputOnOMERO(true);
 			if (checkResults.isSelected()) {
-				if(omeroProjects.isSelected()) {
+				if (omeroProjects.isSelected()) {
 					params.setOutputProjectId(outputProjectId);
-				}
-				else {
+				} else {
 					params.setOutputScreenId(outputScreenId);
 				}
 			}
@@ -1394,6 +1399,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		updateOutput();
 	}
 
+
 	private void updateOutput() {
 		boolean outputOnline = onlineOutput.isSelected();
 		boolean outputLocal = localOutput.isSelected();
@@ -1406,8 +1412,10 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		}
 
 		suffix.getParent().setVisible(outputImage);
-		projectListOut.getParent().setVisible(outputOnline && (outputImage || outputResults) && omeroProjects.isSelected());
-		screenListOut.getParent().setVisible(outputOnline && (outputImage || outputResults) && omeroScreens.isSelected());
+		projectListOut.getParent()
+					  .setVisible(outputOnline && (outputImage || outputResults) && omeroProjects.isSelected());
+		screenListOut.getParent()
+					 .setVisible(outputOnline && (outputImage || outputResults) && omeroScreens.isSelected());
 		datasetListOut.getParent().setVisible(outputOnline && outputImage && omeroProjects.isSelected());
 		newDatasetOut.getParent().setVisible(outputOnline && outputImage && omeroScreens.isSelected());
 		if (outputOnline && userProjects.equals(myProjects)) {
@@ -1487,19 +1495,19 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				errorWindow(String.format("Output:%nNo name set for the output dataset"));
 			} else {
 				check = true;
-				if(omeroProjects.isSelected()) {
+				if (omeroProjects.isSelected()) {
 					DatasetWrapper dataset = myDatasets.get(datIndex);
 					ProjectWrapper project = myProjects.get(projIndex);
 					outputDatasetId = dataset.getId();
 					outputProjectId = project.getId();
-				}else{
+				} else {
 					try {
 						DatasetWrapper dataset = new DatasetWrapper(newDatasetName, "");
 						dataset.saveAndUpdate(client);
 						outputDatasetId = dataset.getId();
-					}catch (AccessException | ExecutionException | ServiceException e){
+					} catch (AccessException | ExecutionException | ServiceException e) {
 						check = false;
-						String msg = "Error; cannot create the new dataset "+newDatasetName;
+						String msg = "Error; cannot create the new dataset " + newDatasetName;
 						errorWindow(msg);
 					}
 					ScreenWrapper screen = myScreens.get(screenIndex);
