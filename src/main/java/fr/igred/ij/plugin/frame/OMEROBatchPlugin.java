@@ -197,8 +197,6 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	private transient List<ProjectWrapper> myProjects;
 	/** The current user's screens. */
 	private transient List<ScreenWrapper> myScreens;
-	/** The current user's plates. */
-	private transient List<PlateWrapper> myPlates;
 	/** The current user's datasets. */
 	private transient List<DatasetWrapper> myDatasets;
 	/** The users. */
@@ -854,15 +852,16 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			if (source instanceof JComboBox<?>) {
 				int index = ((JComboBox<?>) source).getSelectedIndex();
 				ScreenWrapper screen = myScreens.get(index);
-				this.myPlates = screen.getPlates();
-				this.myPlates.sort(Comparator.comparing(PlateWrapper::getName, String.CASE_INSENSITIVE_ORDER));
+				/* The current user's plates. */
+				List<PlateWrapper> myPlates = screen.getPlates();
+				myPlates.sort(Comparator.comparing(PlateWrapper::getName, String.CASE_INSENSITIVE_ORDER));
 				plateListOut.removeAllItems();
 				int padName = getListPadding(myPlates, d -> d.getName().length());
 				int padId = getListPadding(myPlates, g -> (int) (StrictMath.log10(g.getId()))) + 1;
-				for (PlateWrapper d : this.myPlates) {
+				for (PlateWrapper d : myPlates) {
 					plateListOut.addItem(format(d.getName(), d.getId(), padName, padId));
 				}
-				if (!this.myPlates.isEmpty()) {
+				if (!myPlates.isEmpty()) {
 					plateListOut.setSelectedIndex(0);
 				}
 
