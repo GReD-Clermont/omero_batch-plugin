@@ -398,7 +398,7 @@ public class OMEROBatchRunner extends Thread {
 			}
 
 			for (Map.Entry<String, List<BatchImage>> entry : images.entrySet()) {
-				setState("Macro running...");
+				setState("Macro running on: " + entry.getKey());
 				runMacro(entry.getValue());
 				setProgress("");
 				uploadTables(entry.getKey());
