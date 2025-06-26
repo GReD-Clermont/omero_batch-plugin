@@ -1329,18 +1329,18 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 					badInput = false;
 				} else {
 					int plateIndex = plateListIn.getSelectedIndex();
-					int plateAcquisitionIndex = plateAcqListIn.getSelectedIndex();
+					int plateAcqIndex = plateAcqListIn.getSelectedIndex();
 					List<ImageWrapper> imageWrappers;
 					PlateWrapper plate = plates.get(plateIndex);
 
-					if (plateAcquisitionIndex <= 0) {
+					if (plateAcqIndex <= 0) {
 						for (PlateAcquisitionWrapper acquisition : plateAcquisitions) {
 							imageWrappers = acquisition.getImages(client);
 							images.put(plate.getName() + "_" + acquisition.getName(),
 									   listImages(client, imageWrappers));
 						}
 					} else {
-						PlateAcquisitionWrapper acquisition = plateAcquisitions.get(plateAcquisitionIndex - 1);
+						PlateAcquisitionWrapper acquisition = plateAcquisitions.get(plateAcqIndex - 1);
 						imageWrappers = acquisition.getImages(client);
 						images.put(plate.getName() + "_" + acquisition.getName(), listImages(client, imageWrappers));
 					}
