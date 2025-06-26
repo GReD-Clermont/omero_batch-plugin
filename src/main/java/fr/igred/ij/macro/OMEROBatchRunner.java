@@ -67,6 +67,7 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import static java.lang.String.format;
 import static java.nio.file.Files.newOutputStream;
 
 
@@ -507,7 +508,7 @@ public class OMEROBatchRunner extends Thread {
 			initRoiManager();
 
 			//noinspection HardcodedFileSeparator
-			String prog = String.format("Processing %s: %n Image %d/%d",
+			String prog = format("Processing %s: %n Image %d/%d",
 										imgList.getKey(),
 										index + 1,
 										imgList.getValue().size());
@@ -871,32 +872,33 @@ public class OMEROBatchRunner extends Thread {
 	 * Upload the tables to OMERO.
 	 */
 	private void uploadTables(String parentName) {
-		AnnotatableWrapper<?> repoWrapper = null;
+		AnnotatableWrapper<?> ctner = null;
 		if (params.shouldSaveResults()) {
 			setState("Uploading tables...");
 			if (params.isOutputOnOMERO()) {
-				if (params.getOutputProjectId() > 0) {
-					try {
-						repoWrapper = client.getProject(params.getOutputProjectId());
-					} catch (ExecutionException | ServiceException | AccessException e) {
-						IJ.error("Could not retrieve project: " + e.getMessage());
+				String type = "container";
+				try {
+					if (params.getOutputProjectId() > 0) {
+						type = "project";
+						ctner = client.getProject(params.getOutputProjectId());
+					} else {
+						type = "screen";
+						ctner = client.getScreen(params.getOutputScreenId());
 					}
-				} else {
-					try {
-						repoWrapper = client.getScreen(params.getOutputScreenId());
-					} catch (ExecutionException | ServiceException | AccessException e) {
-						IJ.error("Could not retrieve screen: " + e.getMessage());
-					}
+				} catch (ExecutionException | ServiceException | AccessException e) {
+					String msg = e.getMessage();
+					String err = format("Could not retrieve %s: %s", type, msg);
+					IJ.error(err);
 				}
 			}
 			for (Entry<String, TableWrapper> entry : tables.entrySet()) {
 				String name = entry.getKey() + "_" + parentName;
 				TableWrapper table = entry.getValue();
 				String newName = renameTable(table, name);
-				uploadTable(repoWrapper, table);
+				uploadTable(ctner, table);
 				String path = params.getDirectoryOut() + File.separator + newName + ".csv";
 				saveTable(table, path);
-				uploadFile(repoWrapper, path);
+				uploadFile(ctner, path);
 			}
 		}
 	}
