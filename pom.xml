@@ -6,7 +6,7 @@
     <parent>
         <artifactId>pom-scijava</artifactId>
         <groupId>org.scijava</groupId>
-        <version>37.0.0</version>
+        <version>40.0.0</version>
     </parent>
 
     <groupId>fr.igred</groupId>
