@@ -131,7 +131,8 @@ public class OMEROBatchImage implements BatchImage {
 			if (overlay != null) {
 				overlay.clear();
 			} else {
-				overlay = new Overlay();
+				imp.setOverlay(new Overlay());
+				overlay = imp.getOverlay();
 			}
 			for (Roi ijRoi : ijRois) {
 				ijRoi.setImage(imp);
