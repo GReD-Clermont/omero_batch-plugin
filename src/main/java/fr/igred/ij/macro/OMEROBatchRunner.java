@@ -28,7 +28,6 @@ import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.repository.DatasetWrapper;
 import fr.igred.omero.repository.ImageWrapper;
-import fr.igred.omero.repository.ProjectWrapper;
 import fr.igred.omero.roi.ROIWrapper;
 import ij.IJ;
 import ij.ImagePlus;
@@ -59,6 +58,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
@@ -67,6 +67,7 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import static java.lang.String.format;
 import static java.nio.file.Files.newOutputStream;
 
 
@@ -85,7 +86,7 @@ public class OMEROBatchRunner extends Thread {
 	private static final Pattern TITLE_AFTER_EXT = Pattern.compile("\\w+\\s?\\[?([^\\[\\]]*)]?");
 
 	/** The images. */
-	private final List<BatchImage> images;
+	private final Map<String, List<BatchImage>> images;
 	/** The script. */
 	private final ScriptRunner script;
 	/** The OMERO client. */
@@ -113,7 +114,7 @@ public class OMEROBatchRunner extends Thread {
 	 * @param params The parameters.
 	 * @param client The OMERO client.
 	 */
-	public OMEROBatchRunner(ScriptRunner script, List<BatchImage> images, BatchParameters params, Client client) {
+	public OMEROBatchRunner(ScriptRunner script, Map<String, List<BatchImage>> images, BatchParameters params, Client client) {
 		this(script, images, params, client, new ProgressLog(LOGGER));
 	}
 
@@ -128,12 +129,12 @@ public class OMEROBatchRunner extends Thread {
 	 * @param progress The progress monitor.
 	 */
 	public OMEROBatchRunner(ScriptRunner script,
-							List<BatchImage> images,
+							Map<String, List<BatchImage>> images,
 							BatchParameters params,
 							Client client,
 							ProgressMonitor progress) {
 		this.script = script;
-		this.images = new ArrayList<>(images);
+		this.images = new HashMap<>(images);
 		this.params = new BatchParameters(params);
 		this.client = client;
 		this.progress = progress;
@@ -398,10 +399,13 @@ public class OMEROBatchRunner extends Thread {
 				params.setDirectoryOut(Files.createTempDirectory("Fiji_analysis").toString());
 			}
 
-			setState("Macro running...");
-			runMacro();
-			setProgress("");
-			uploadTables();
+			for (Entry<String, List<BatchImage>> entry : images.entrySet()) {
+				setState("Macro running...");
+				runMacro(entry);
+				setProgress("");
+				uploadTables(entry.getKey());
+				tables.clear();
+			}
 
 			if (!params.isOutputOnLocal()) {
 				setState("Temporary directory deletion...");
@@ -451,7 +455,7 @@ public class OMEROBatchRunner extends Thread {
 			LOGGER.warning(exception.getMessage());
 		} catch (InterruptedException e) {
 			LOGGER.warning(e.getMessage());
-			Thread.currentThread().interrupt();
+			currentThread().interrupt();
 		}
 	}
 
@@ -494,17 +498,22 @@ public class OMEROBatchRunner extends Thread {
 	/**
 	 * Runs a macro on images and saves the results.
 	 */
-	private void runMacro() {
+	private void runMacro(Entry<String, ? extends List<BatchImage>> imgList) {
 		String property = ROIWrapper.IJ_PROPERTY;
 		WindowManager.closeAllWindows();
 
 		int index = 0;
-		for (BatchImage image : images) {
+		for (BatchImage image : imgList.getValue()) {
 			// Initialize ROI Manager
 			initRoiManager();
 
 			//noinspection HardcodedFileSeparator
-			setProgress("Image " + (index + 1) + "/" + images.size());
+			String prog = format("Processing %s: %n Image %d/%d",
+										imgList.getKey(),
+										index + 1,
+										imgList.getValue().size());
+
+			setProgress(prog);
 			setState("Opening image...");
 			ImagePlus imp = image.getImagePlus(params.getROIMode());
 			// If image could not be loaded, continue to next image.
@@ -813,7 +822,7 @@ public class OMEROBatchRunner extends Thread {
 				IJ.error("Error adding file to object:" + e.getMessage());
 			} catch (InterruptedException e) {
 				IJ.error("Error adding file to object:" + e.getMessage());
-				Thread.currentThread().interrupt();
+				currentThread().interrupt();
 			}
 		}
 	}
@@ -845,13 +854,13 @@ public class OMEROBatchRunner extends Thread {
 	/**
 	 * Uploads a table to a project, if required.
 	 *
-	 * @param project The project the table belongs to.
-	 * @param table   The table.
+	 * @param repoWrapper The project the table belongs to.
+	 * @param table       The table.
 	 */
-	private void uploadTable(ProjectWrapper project, TableWrapper table) {
-		if (project != null && params.isOutputOnOMERO()) {
+	private void uploadTable(AnnotatableWrapper<?> repoWrapper, TableWrapper table) {
+		if (repoWrapper != null && params.isOutputOnOMERO()) {
 			try {
-				project.addTable(client, table);
+				repoWrapper.addTable(client, table);
 			} catch (ExecutionException | ServiceException | AccessException e) {
 				IJ.error("Could not upload table: " + e.getMessage());
 			}
@@ -862,25 +871,34 @@ public class OMEROBatchRunner extends Thread {
 	/**
 	 * Upload the tables to OMERO.
 	 */
-	private void uploadTables() {
-		ProjectWrapper project = null;
+	private void uploadTables(String parentName) {
+		AnnotatableWrapper<?> ctner = null;
 		if (params.shouldSaveResults()) {
 			setState("Uploading tables...");
 			if (params.isOutputOnOMERO()) {
+				String type = "container";
 				try {
-					project = client.getProject(params.getOutputProjectId());
+					if (params.getOutputProjectId() > 0) {
+						type = "project";
+						ctner = client.getProject(params.getOutputProjectId());
+					} else {
+						type = "screen";
+						ctner = client.getScreen(params.getOutputScreenId());
+					}
 				} catch (ExecutionException | ServiceException | AccessException e) {
-					IJ.error("Could not retrieve project: " + e.getMessage());
+					String msg = e.getMessage();
+					String err = format("Could not retrieve %s: %s", type, msg);
+					IJ.error(err);
 				}
 			}
-			for (Map.Entry<String, TableWrapper> entry : tables.entrySet()) {
-				String name = entry.getKey();
+			for (Entry<String, TableWrapper> entry : tables.entrySet()) {
+				String name = entry.getKey() + "_" + parentName;
 				TableWrapper table = entry.getValue();
 				String newName = renameTable(table, name);
-				uploadTable(project, table);
+				uploadTable(ctner, table);
 				String path = params.getDirectoryOut() + File.separator + newName + ".csv";
 				saveTable(table, path);
-				uploadFile(project, path);
+				uploadFile(ctner, path);
 			}
 		}
 	}
