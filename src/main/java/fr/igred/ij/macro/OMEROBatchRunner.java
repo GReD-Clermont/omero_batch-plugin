@@ -58,6 +58,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
@@ -397,9 +398,9 @@ public class OMEROBatchRunner extends Thread {
 				params.setDirectoryOut(Files.createTempDirectory("Fiji_analysis").toString());
 			}
 
-			for (Map.Entry<String, List<BatchImage>> entry : images.entrySet()) {
-				setState("Macro running on: " + entry.getKey());
-				runMacro(entry.getValue());
+			for (Entry<String, List<BatchImage>> entry : images.entrySet()) {
+				setState("Macro running...");
+				runMacro(entry);
 				setProgress("");
 				uploadTables(entry.getKey());
 				tables.clear();
@@ -496,17 +497,22 @@ public class OMEROBatchRunner extends Thread {
 	/**
 	 * Runs a macro on images and saves the results.
 	 */
-	private void runMacro(List<? extends BatchImage> images) {
+	private void runMacro(Entry<String, ? extends List<BatchImage>> imgList) {
 		String property = ROIWrapper.IJ_PROPERTY;
 		WindowManager.closeAllWindows();
 
 		int index = 0;
-		for (BatchImage image : images) {
+		for (BatchImage image : imgList.getValue()) {
 			// Initialize ROI Manager
 			initRoiManager();
 
 			//noinspection HardcodedFileSeparator
-			setProgress("Image " + (index + 1) + "/" + images.size());
+			String prog = String.format("Processing %s: %n Image %d/%d",
+										imgList.getKey(),
+										index + 1,
+										imgList.getValue().size());
+
+			setProgress(prog);
 			setState("Opening image...");
 			ImagePlus imp = image.getImagePlus(params.getROIMode());
 			// If image could not be loaded, continue to next image.
@@ -883,7 +889,7 @@ public class OMEROBatchRunner extends Thread {
 					}
 				}
 			}
-			for (Map.Entry<String, TableWrapper> entry : tables.entrySet()) {
+			for (Entry<String, TableWrapper> entry : tables.entrySet()) {
 				String name = entry.getKey() + "_" + parentName;
 				TableWrapper table = entry.getValue();
 				String newName = renameTable(table, name);
