@@ -1478,22 +1478,29 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	 * @return True if the selection is ok.
 	 */
 	private boolean getOMEROOutput() {
-		boolean check = false;
+		boolean check = true;
 		if (onlineOutput.isSelected()) {
 			int projIndex = projectListOut.getSelectedIndex();
 			int datIndex = datasetListOut.getSelectedIndex();
 			int screenIndex = screenListOut.getSelectedIndex();
 			String newDatasetName = newDatasetOut.getText();
-			if (projIndex == -1 || projIndex > myProjects.size()) {
-				errorWindow(String.format("Output:%nNo project selected"));
-			} else if (datIndex == -1 || datIndex > myDatasets.size()) {
-				errorWindow(String.format("Output:%nNo dataset selected"));
+			if (omeroProjects.isSelected()) {
+				if (projIndex == -1 || projIndex > myProjects.size()) {
+					errorWindow(String.format("Output:%nNo project selected"));
+					check = false;
+				} else if (datIndex == -1 || datIndex > myDatasets.size()) {
+					errorWindow(String.format("Output:%nNo dataset selected"));
+					check = false;
+				}
 			} else if (screenIndex == -1 || screenIndex > myScreens.size()) {
 				errorWindow(String.format("Output:%nNo screen selected"));
-			} else if (newDatasetOut.getParent().isVisible() && newDatasetName.isEmpty()) {
+				check = false;
+			}
+			if (newDatasetOut.getParent().isVisible() && newDatasetName.isEmpty()) {
 				errorWindow(String.format("Output:%nNo name set for the output dataset"));
-			} else {
-				check = true;
+				check = false;
+			}
+			if(check){
 				if (omeroProjects.isSelected()) {
 					DatasetWrapper dataset = myDatasets.get(datIndex);
 					ProjectWrapper project = myProjects.get(projIndex);
