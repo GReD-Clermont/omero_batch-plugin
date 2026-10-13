@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2021-2023 MICA & GReD
+ *  Copyright (C) 2021-2026 MICA & GReD
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
@@ -94,6 +94,18 @@ public class LocalBatchImage implements BatchImage {
 
 
 	/**
+	 * Checks if the specified file is a ROI file.
+	 *
+	 * @param file The file path.
+	 *
+	 * @return True if it is a ROI file.
+	 */
+	private static boolean isRoiFile(String file) {
+		return file.endsWith(".roi") || (file.endsWith(".zip") && file.contains("_RoiSet"));
+	}
+
+
+	/**
 	 * Creates a list of images to be opened, contained in the specified directory.
 	 *
 	 * @param directory The directory.
@@ -103,14 +115,15 @@ public class LocalBatchImage implements BatchImage {
 	 *
 	 * @throws IOException ImporterOptions could not be instantiated.
 	 */
-	public static List<BatchImage> listImages(String directory, boolean recursive) throws IOException {
+	public static List<BatchImage> listImages(String directory, boolean recursive)
+	throws IOException {
 		ImporterOptions options = initImporterOptions();
 		List<BatchImage> batchImages = new LinkedList<>();
 		File dir = new File(directory);
 		List<String> files = listFiles(dir, recursive);
 		List<String> used = new ArrayList<>(files.size());
 		for (String file : files) {
-			if (!used.contains(file)) {
+			if (!used.contains(file) && !isRoiFile(file)) {
 				// Open the image
 				options.setId(file);
 				ImportProcess process = new ImportProcess(options);

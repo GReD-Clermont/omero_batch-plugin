@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2021-2023 MICA & GReD
+ *  Copyright (C) 2021-2026 MICA & GReD
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
@@ -43,7 +43,21 @@ import ij.Prefs;
 import ij.plugin.frame.PlugInFrame;
 import loci.plugins.config.SpringUtilities;
 
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JTextField;
+import javax.swing.SpringLayout;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -79,6 +93,12 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 
 	/** The logger. */
 	private static final Logger LOGGER = Logger.getLogger(MethodHandles.lookup().lookupClass().getName());
+
+	/** The label used to indicate all members. */
+	private static final String ALL_MEMBERS = "All members";
+
+	/** The label used for the preview button. */
+	private static final String PREVIEW = "Preview";
 
 	/** The format used to display OMERO objects. */
 	private static final String FORMAT = "%%-%ds (ID:%%%dd)";
@@ -174,7 +194,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 
 	//variables to keep
 	/** The OMERO client. */
-	private transient Client client;
+	protected transient Client client;
 	/** The script runner. */
 	private transient ScriptRunner script;
 	/** The groups. */
@@ -308,7 +328,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		JPanel input1b = new JPanel();
 		JLabel labelProjectIn = new JLabel(projectName);
 		JLabel labelDatasetIn = new JLabel(datasetName);
-		JButton preview = new JButton("Preview");
+		JButton preview = new JButton(PREVIEW);
 		labelProjectIn.setLabelFor(projectListIn);
 		labelDatasetIn.setLabelFor(datasetListIn);
 		input1b.add(labelProjectIn);
@@ -328,7 +348,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		JLabel labelScreenIn = new JLabel(screenName);
 		JLabel labelPlateIn = new JLabel(plateName);
 		JLabel labelPlateAcqIn = new JLabel(plateAcquisitionName);
-		JButton preview2 = new JButton("Preview");
+		JButton preview2 = new JButton(PREVIEW);
 		labelScreenIn.setLabelFor(screenListIn);
 		labelPlateIn.setLabelFor(plateListIn);
 		input1c.add(labelScreenIn);
@@ -472,10 +492,10 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 		labelProjectOut.setLabelFor(screenListOut);
 		output3b.add(labelScreenOut);
 		output3b.add(screenListOut);
-		JLabel labelNewDatasetForPlate = new JLabel("Dataset to create:");
+		JLabel newDatasetForPlate = new JLabel("Dataset to create:");
 		labelExtension.setLabelFor(newDatasetOut);
 		newDatasetOut.setText("");
-		output3b1.add(labelNewDatasetForPlate);
+		output3b1.add(newDatasetForPlate);
 		output3b1.add(newDatasetOut);
 		output3b.add(output3b1);
 		screenListOut.addItemListener(this::updateOutputScreen);
@@ -660,7 +680,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	 * @param userId   The user ID.
 	 */
 	private void userProjects(String username, long userId) {
-		if ("All members".equals(username)) {
+		if (ALL_MEMBERS.equals(username)) {
 			userProjects = groupProjects;
 		} else {
 			userProjects = groupProjects.stream()
@@ -680,7 +700,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 	 * @param userId   The user ID.
 	 */
 	private void userScreens(String username, long userId) {
-		if ("All members".equals(username)) {
+		if (ALL_MEMBERS.equals(username)) {
 			userScreens = groupScreens;
 		} else {
 			userScreens = groupScreens.stream()
@@ -1023,7 +1043,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 			users.sort(Comparator.comparing(ExperimenterWrapper::getUserName));
 			userList.removeAllItems();
 
-			userList.addItem("All members");
+			userList.addItem(ALL_MEMBERS);
 			int padName = getListPadding(users, u -> u.getUserName().length());
 			int padId = getListPadding(users, g -> (int) (StrictMath.log10(g.getId()))) + 1;
 			int selected = 0;
@@ -1238,7 +1258,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 											nRows, 2,
 											5, 5,  //initX, initY
 											10, 10); //xPad, yPad
-			showMessageDialog(this, panel, "Preview", JOptionPane.INFORMATION_MESSAGE);
+			showMessageDialog(this, panel, PREVIEW, JOptionPane.INFORMATION_MESSAGE);
 		} catch (ServiceException | AccessException | OMEROServerError | ExecutionException | IOException e) {
 			errorWindow(e.getMessage());
 		}
@@ -1286,7 +1306,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 											nRows, 2,
 											5, 5,  //initX, initY
 											10, 10); //xPad, yPad
-			showMessageDialog(this, panel, "Preview", JOptionPane.INFORMATION_MESSAGE);
+			showMessageDialog(this, panel, PREVIEW, JOptionPane.INFORMATION_MESSAGE);
 		} catch (ServiceException | AccessException | OMEROServerError | ExecutionException | IOException e) {
 			errorWindow(e.getMessage());
 		}
@@ -1348,7 +1368,8 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				}
 			} else { // local.isSelected()
 				badInput = !getLocalInput();
-				images.put(new File(directoryIn).getName(), listImages(directoryIn, recursive.isSelected()));
+				String dirName = new File(directoryIn).getName();
+				images.put(dirName, listImages(directoryIn, recursive.isSelected()));
 			}
 			params.setOutputDatasetId(inputDatasetId);
 		} catch (ServiceException | AccessException | ExecutionException | IOException exception) {
@@ -1500,7 +1521,7 @@ public class OMEROBatchPlugin extends PlugInFrame implements BatchListener {
 				errorWindow(String.format("Output:%nNo name set for the output dataset"));
 				check = false;
 			}
-			if(check){
+			if (check) {
 				if (omeroProjects.isSelected()) {
 					DatasetWrapper dataset = myDatasets.get(datIndex);
 					ProjectWrapper project = myProjects.get(projIndex);
